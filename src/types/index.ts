@@ -46,6 +46,7 @@ export interface SolveSession {
   id: string
   user_id: string
   subject_id: string | null
+  problem_set_id: string | null
   mode: 'sequential' | 'random'
   status: 'active' | 'completed'
   created_at: string

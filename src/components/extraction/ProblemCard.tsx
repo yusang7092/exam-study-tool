@@ -1,11 +1,11 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import type { Problem } from '@/types/index'
 import AnswerTypeSelector from './AnswerTypeSelector'
 import MCQAnswerInput from './MCQAnswerInput'
 
 interface Props {
   problem: Problem
-  onUpdate: (updates: Partial<Pick<Problem, 'question_text' | 'answer_type' | 'correct_answer' | 'options'>>) => void
+  onUpdate: (updates: Partial<Pick<Problem, 'question_text' | 'answer_type' | 'correct_answer' | 'options'>>) => void | Promise<void>
   onDelete: () => void
 }
 
@@ -14,6 +14,9 @@ export default function ProblemCard({ problem, onUpdate, onDelete }: Props) {
   const [options, setOptions] = useState<string[]>(
     problem.options ?? ['①', '②', '③', '④', '⑤']
   )
+  const [localAnswer, setLocalAnswer] = useState(problem.correct_answer ?? '')
+
+  useEffect(() => setLocalAnswer(problem.correct_answer ?? ''), [problem.correct_answer])
 
   const handleQuestionBlur = () => {
     if (questionText !== problem.question_text) {
@@ -176,7 +179,7 @@ export default function ProblemCard({ problem, onUpdate, onDelete }: Props) {
       {/* Answer type */}
       <div style={{ marginBottom: 14 }}>
         <label style={labelStyle}>유형</label>
-        <AnswerTypeSelector value={problem.answer_type} onChange={handleAnswerTypeChange} />
+        <AnswerTypeSelector value={problem.answer_type} onChange={handleAnswerTypeChange} id={problem.id} />
       </div>
 
       {/* MCQ options + correct answer */}
@@ -237,14 +240,15 @@ export default function ProblemCard({ problem, onUpdate, onDelete }: Props) {
           <label style={labelStyle}>정답</label>
           <input
             type="text"
-            defaultValue={problem.correct_answer ?? ''}
+            value={localAnswer}
             placeholder="정답을 입력하세요"
             style={inputBaseStyle}
+            onChange={e => setLocalAnswer(e.target.value)}
             onFocus={e => { e.target.style.borderColor = '#6366F1' }}
             onBlur={e => {
               e.target.style.borderColor = '#E5E7EB'
               if (e.target.value !== problem.correct_answer) {
-                onUpdate({ correct_answer: e.target.value })
+                void onUpdate({ correct_answer: e.target.value })
               }
             }}
           />
@@ -256,7 +260,7 @@ export default function ProblemCard({ problem, onUpdate, onDelete }: Props) {
         <div>
           <label style={labelStyle}>채점 기준 / 모범 답안</label>
           <textarea
-            defaultValue={problem.correct_answer ?? ''}
+            value={localAnswer}
             rows={3}
             placeholder="채점 기준이나 모범 답안을 입력하세요..."
             style={{
@@ -265,11 +269,12 @@ export default function ProblemCard({ problem, onUpdate, onDelete }: Props) {
               fontFamily: 'system-ui, sans-serif',
               lineHeight: 1.5,
             }}
+            onChange={e => setLocalAnswer(e.target.value)}
             onFocus={e => { e.target.style.borderColor = '#6366F1' }}
             onBlur={e => {
               e.target.style.borderColor = '#E5E7EB'
               if (e.target.value !== problem.correct_answer) {
-                onUpdate({ correct_answer: e.target.value })
+                void onUpdate({ correct_answer: e.target.value })
               }
             }}
           />

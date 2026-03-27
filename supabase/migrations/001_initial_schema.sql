@@ -95,3 +95,7 @@ create policy "Users manage own attempts" on public.attempts
 -- insert into storage.buckets (id, name, public) values ('problem-sources', 'problem-sources', false);
 -- insert into storage.buckets (id, name, public) values ('page-images', 'page-images', false);
 -- insert into storage.buckets (id, name, public) values ('answer-photos', 'answer-photos', false);
+
+-- Migration: add problem_set_id to solve_sessions
+alter table public.solve_sessions
+  add column if not exists problem_set_id uuid references public.problem_sets on delete set null;

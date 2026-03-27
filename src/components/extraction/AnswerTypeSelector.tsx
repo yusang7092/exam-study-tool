@@ -3,6 +3,7 @@ import type { Problem } from '@/types/index'
 interface Props {
   value: Problem['answer_type']
   onChange: (value: Problem['answer_type']) => void
+  id?: string
 }
 
 const OPTIONS: { value: Problem['answer_type']; label: string }[] = [
@@ -11,7 +12,7 @@ const OPTIONS: { value: Problem['answer_type']; label: string }[] = [
   { value: 'essay', label: '서술형' },
 ]
 
-export default function AnswerTypeSelector({ value, onChange }: Props) {
+export default function AnswerTypeSelector({ value, onChange, id }: Props) {
   return (
     <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
       {OPTIONS.map(opt => {
@@ -37,7 +38,7 @@ export default function AnswerTypeSelector({ value, onChange }: Props) {
           >
             <input
               type="radio"
-              name={`answer-type-${Math.random()}`}
+              name={`answer-type-${id ?? 'default'}`}
               value={opt.value}
               checked={selected}
               onChange={() => onChange(opt.value)}

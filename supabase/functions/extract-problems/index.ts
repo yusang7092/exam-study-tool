@@ -1,14 +1,14 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
+const ALLOWED_ORIGIN = Deno.env.get('ALLOWED_ORIGIN') || 'http://localhost:5173'
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Origin': ALLOWED_ORIGIN,
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
 interface ExtractRequest {
   problem_set_id: string
   page_image_paths: string[]
-  user_id: string
 }
 
 interface ExtractedProblem {
@@ -27,28 +27,31 @@ const PROMPT = `이 이미지에서 시험 문제들을 추출해주세요. 각 
 }]
 JSON만 반환하고 다른 텍스트는 포함하지 마세요.`
 
-async function fetchImageAsBase64(url: string): Promise<string> {
-  const res = await fetch(url)
-  if (!res.ok) throw new Error(`Failed to fetch image: ${res.status}`)
-  const arrayBuffer = await res.arrayBuffer()
+async function fetchImageData(url: string): Promise<{ base64: string; mimeType: 'image/jpeg' | 'image/png' | 'image/webp' }> {
+  const response = await fetch(url)
+  if (!response.ok) throw new Error(`Failed to fetch image: ${response.status}`)
+  const contentType = response.headers.get('content-type') || 'image/jpeg'
+  const mimeType = contentType.split(';')[0].trim() as 'image/jpeg' | 'image/png' | 'image/webp'
+  const arrayBuffer = await response.arrayBuffer()
   const bytes = new Uint8Array(arrayBuffer)
   let binary = ''
   for (let i = 0; i < bytes.byteLength; i++) {
     binary += String.fromCharCode(bytes[i])
   }
-  return btoa(binary)
+  return { base64: btoa(binary), mimeType }
 }
 
 async function extractWithGemini(
   apiKey: string,
-  base64Data: string
+  base64Data: string,
+  mimeType: 'image/jpeg' | 'image/png' | 'image/webp'
 ): Promise<ExtractedProblem[]> {
   const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`
   const body = {
     contents: [
       {
         parts: [
-          { inline_data: { mime_type: 'image/jpeg', data: base64Data } },
+          { inline_data: { mime_type: mimeType, data: base64Data } },
           { text: PROMPT },
         ],
       },
@@ -73,7 +76,8 @@ async function extractWithGemini(
 
 async function extractWithClaude(
   apiKey: string,
-  base64Data: string
+  base64Data: string,
+  mimeType: 'image/jpeg' | 'image/png' | 'image/webp'
 ): Promise<ExtractedProblem[]> {
   const res = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
@@ -91,7 +95,7 @@ async function extractWithClaude(
           content: [
             {
               type: 'image',
-              source: { type: 'base64', media_type: 'image/jpeg', data: base64Data },
+              source: { type: 'base64', media_type: mimeType, data: base64Data },
             },
             { type: 'text', text: PROMPT },
           ],
@@ -148,12 +152,30 @@ Deno.serve(async (req: Request) => {
       auth: { persistSession: false },
     })
 
-    const body: ExtractRequest = await req.json()
-    const { problem_set_id, page_image_paths, user_id } = body
+    const authHeader = req.headers.get('Authorization')
+    if (!authHeader?.startsWith('Bearer ')) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
 
-    if (!problem_set_id || !user_id || !Array.isArray(page_image_paths)) {
+    const { data: { user }, error: authError } = await adminClient.auth.getUser(
+      authHeader.replace('Bearer ', '')
+    )
+    if (authError || !user) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
+    const body: ExtractRequest = await req.json()
+    const { problem_set_id, page_image_paths } = body
+
+    if (!problem_set_id || !Array.isArray(page_image_paths)) {
       return new Response(
-        JSON.stringify({ error: 'Missing required fields: problem_set_id, page_image_paths, user_id' }),
+        JSON.stringify({ error: 'Missing required fields: problem_set_id, page_image_paths' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
@@ -162,7 +184,7 @@ Deno.serve(async (req: Request) => {
     const { data: settings, error: settingsError } = await adminClient
       .from('user_settings')
       .select('gemini_api_key, claude_api_key, preferred_ai')
-      .eq('id', user_id)
+      .eq('id', user.id)
       .single()
 
     if (settingsError || !settings) {
@@ -216,10 +238,10 @@ Deno.serve(async (req: Request) => {
         continue
       }
 
-      // Fetch image as base64
-      let base64Data: string
+      // Fetch image as base64 with MIME type detection
+      let imageData: { base64: string; mimeType: 'image/jpeg' | 'image/png' | 'image/webp' }
       try {
-        base64Data = await fetchImageAsBase64(signedData.signedUrl)
+        imageData = await fetchImageData(signedData.signedUrl)
       } catch (err) {
         console.error(`Failed to fetch image ${imagePath}:`, err)
         continue
@@ -229,9 +251,9 @@ Deno.serve(async (req: Request) => {
       let pageProblems: ExtractedProblem[] = []
       try {
         if (useAi === 'gemini') {
-          pageProblems = await extractWithGemini(apiKey, base64Data)
+          pageProblems = await extractWithGemini(apiKey, imageData.base64, imageData.mimeType)
         } else {
-          pageProblems = await extractWithClaude(apiKey, base64Data)
+          pageProblems = await extractWithClaude(apiKey, imageData.base64, imageData.mimeType)
         }
       } catch (err) {
         console.error(`Extraction failed for ${imagePath}:`, err)
@@ -249,7 +271,7 @@ Deno.serve(async (req: Request) => {
     if (allProblems.length > 0) {
       const rows = allProblems.map((p) => ({
         problem_set_id,
-        user_id,
+        user_id: user.id,
         subject_id: subjectId,
         sequence_num: p.sequence_num,
         question_text: p.question_text,

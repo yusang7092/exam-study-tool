@@ -7,7 +7,7 @@ interface UseProblemsReturn {
   problems: Problem[]
   loading: boolean
   error: string | null
-  updateProblem: (id: string, updates: Partial<Pick<Problem, 'question_text' | 'answer_type' | 'correct_answer' | 'options'>>) => Promise<void>
+  updateProblem: (id: string, updates: Partial<Pick<Problem, 'question_text' | 'answer_type' | 'correct_answer' | 'options'>>) => Promise<{ error: string | null }>
   addProblem: (problemSetId: string, subjectId: string) => Promise<Problem | null>
   deleteProblem: (id: string) => Promise<void>
   refetch: () => Promise<void>
@@ -49,17 +49,20 @@ export function useProblems(problemSetId: string | null): UseProblemsReturn {
     async (
       id: string,
       updates: Partial<Pick<Problem, 'question_text' | 'answer_type' | 'correct_answer' | 'options'>>
-    ) => {
+    ): Promise<{ error: string | null }> => {
       const { error: updateError } = await supabase
         .from('problems')
         .update(updates)
         .eq('id', id)
 
-      if (updateError) throw new Error(updateError.message)
+      if (updateError) {
+        return { error: updateError.message }
+      }
 
       setProblems(prev =>
         prev.map(p => (p.id === id ? { ...p, ...updates } : p))
       )
+      return { error: null }
     },
     []
   )

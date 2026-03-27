@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { useSearchParams, useNavigate } from 'react-router-dom'
 import { useAuth } from '@/hooks/useAuth'
 import { useProblems } from '@/hooks/useProblems'
@@ -20,8 +20,6 @@ export default function ExtractionReviewPage() {
 
   const { problems, loading: problemsLoading, updateProblem, addProblem, deleteProblem, refetch } =
     useProblems(setId)
-
-  const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   // Fetch problem_set
   const fetchProblemSet = async () => {
@@ -51,34 +49,14 @@ export default function ExtractionReviewPage() {
 
   // Poll while status is 'extracting'
   useEffect(() => {
-    if (problemSet?.status === 'extracting') {
-      pollingRef.current = setInterval(async () => {
-        if (!setId || !user) return
-        const { data } = await supabase
-          .from('problem_sets')
-          .select('*')
-          .eq('id', setId)
-          .eq('user_id', user.id)
-          .single()
-        if (data) {
-          const ps = data as ProblemSet
-          setProblemSet(ps)
-          if (ps.status !== 'extracting') {
-            if (pollingRef.current) clearInterval(pollingRef.current)
-            if (ps.status === 'reviewing') void refetch()
-          }
-        }
-      }, 3000)
-    } else {
-      if (pollingRef.current) {
-        clearInterval(pollingRef.current)
-        pollingRef.current = null
-      }
-    }
-    return () => {
-      if (pollingRef.current) clearInterval(pollingRef.current)
-    }
-  }, [problemSet?.status, setId, user, refetch])
+    if (problemSet?.status !== 'extracting') return
+    const interval = setInterval(async () => {
+      await fetchProblemSet()
+      await refetch()
+    }, 3000)
+    return () => clearInterval(interval)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [problemSet?.status, refetch])
 
   const handleStartLearning = async () => {
     if (!user || !problemSet) return
@@ -89,6 +67,7 @@ export default function ExtractionReviewPage() {
         .insert({
           user_id: user.id,
           subject_id: problemSet.subject_id,
+          problem_set_id: problemSet.id,
           mode: 'sequential',
           status: 'active',
         })
@@ -251,7 +230,10 @@ export default function ExtractionReviewPage() {
                 <ProblemCard
                   key={problem.id}
                   problem={problem}
-                  onUpdate={updates => void updateProblem(problem.id, updates)}
+                  onUpdate={async updates => {
+                    const { error: updateErr } = await updateProblem(problem.id, updates)
+                    if (updateErr) console.error('Failed to update problem:', updateErr)
+                  }}
                   onDelete={() => void deleteProblem(problem.id)}
                 />
               ))}
