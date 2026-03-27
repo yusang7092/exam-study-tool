@@ -83,7 +83,7 @@ export default function DashboardPage() {
   }
 
   return (
-    <div style={{ fontFamily: 'system-ui, sans-serif', color: '#111827', minHeight: '100%', background: '#f9fafb', paddingBottom: 100 }}>
+    <div style={{ fontFamily: 'system-ui, sans-serif', color: '#111827', minHeight: '100%', background: '#f9fafb', paddingBottom: 'calc(100px + env(safe-area-inset-bottom))' }}>
       {/* Header */}
       <div style={{ background: '#fff', borderBottom: '1px solid #e5e7eb', padding: '24px 20px 20px' }}>
         <div style={{ fontSize: 13, color: '#6b7280', marginBottom: 4 }}>오늘도 열심히!</div>
@@ -270,11 +270,6 @@ export default function DashboardPage() {
         +
       </button>
 
-      <style>{`
-        @media (min-width: 1025px) {
-          .fab-btn { bottom: 32px !important; }
-        }
-      `}</style>
     </div>
   )
 }

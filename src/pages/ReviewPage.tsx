@@ -19,21 +19,27 @@ export default function ReviewPage() {
 
   const [wrongAttempts, setWrongAttempts] = useState<AttemptWithProblem[]>([])
   const [loading, setLoading] = useState(true)
+  const [fetchError, setFetchError] = useState<string | null>(null)
   const [selectedSubjectId, setSelectedSubjectId] = useState<string | null>(null)
   const [sessionFilter, setSessionFilter] = useState<string | null>(sessionIdParam)
+
+  useEffect(() => {
+    setSessionFilter(sessionIdParam)
+  }, [sessionIdParam])
 
   useEffect(() => {
     if (!user) return
 
     const fetch = async () => {
       setLoading(true)
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('attempts')
         .select('*, problems(*)')
         .eq('user_id', user.id)
         .eq('is_correct', false)
         .order('attempted_at', { ascending: false })
 
+      if (error) { setFetchError('오답을 불러오지 못했습니다.'); setLoading(false); return }
       setWrongAttempts((data as AttemptWithProblem[]) ?? [])
       setLoading(false)
     }
@@ -106,6 +112,7 @@ export default function ReviewPage() {
             }}>
               이번 세션 오답
               <button
+                className="small"
                 onClick={() => setSessionFilter(null)}
                 style={{
                   background: 'none',
@@ -135,6 +142,7 @@ export default function ReviewPage() {
 
       {/* Content */}
       <div style={{ flex: 1, overflowY: 'auto', padding: '16px 16px 32px' }}>
+        {fetchError && <div style={{ color: '#ef4444', padding: 16 }}>{fetchError}</div>}
         {filtered.length === 0 ? (
           <div style={{
             display: 'flex',

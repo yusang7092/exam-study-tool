@@ -27,14 +27,15 @@ export default function WrongAnswerCard({ problem, attempt, subjectName, subject
   const [imageUrl, setImageUrl] = useState<string | null>(null)
 
   useEffect(() => {
-    if (problem.image_url) {
-      getSignedUrl('page-images', problem.image_url)
-        .then(url => setImageUrl(url))
-        .catch(() => setImageUrl(null))
-    }
+    if (!problem.image_url) return
+    let cancelled = false
+    getSignedUrl('page-images', problem.image_url)
+      .then(url => { if (!cancelled) setImageUrl(url) })
+      .catch(() => { if (!cancelled) setImageUrl(null) })
+    return () => { cancelled = true }
   }, [problem.image_url])
 
-  const hasLongText = problem.question_text && problem.question_text.length > 120
+  const hasLongText = problem.question_text && problem.question_text.length > 60
 
   return (
     <div style={{
@@ -121,6 +122,7 @@ export default function WrongAnswerCard({ problem, attempt, subjectName, subject
           </p>
           {hasLongText && (
             <button
+              className="small"
               onClick={() => setExpanded(prev => !prev)}
               style={{
                 background: 'none',
