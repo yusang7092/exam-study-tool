@@ -71,7 +71,7 @@ export default function SolvePage() {
     setEssayPhoto(null)
     setFeedbackVisible(false)
     startTimeRef.current = Date.now()
-  }, [currentProblem?.id]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [currentProblem?.id, attempts])
 
   const handleSubmit = async () => {
     if (!currentProblem || !sessionId || submitting) return
@@ -109,10 +109,12 @@ export default function SolvePage() {
         const token = authSession?.access_token
 
         let finalAnswer = answer.trim()
+        let essayImagePath: string | undefined
         if (essayPhoto && authSession?.user) {
           const path = `${authSession.user.id}/essays/${attempt.id}.jpg`
           await supabase.storage.from('page-images').upload(path, essayPhoto, { upsert: true })
           finalAnswer = finalAnswer || '[사진 답안]'
+          essayImagePath = path
         }
 
         const res = await fetch(
@@ -127,6 +129,7 @@ export default function SolvePage() {
               attempt_id: attempt.id,
               problem_id: currentProblem.id,
               user_answer: finalAnswer,
+              ...(essayImagePath ? { essay_image_path: essayImagePath } : {}),
             }),
           }
         )

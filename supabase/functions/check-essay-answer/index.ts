@@ -4,12 +4,14 @@ const ALLOWED_ORIGIN = Deno.env.get('ALLOWED_ORIGIN') || 'http://localhost:5173'
 const corsHeaders = {
   'Access-Control-Allow-Origin': ALLOWED_ORIGIN,
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
 }
 
 interface CheckEssayRequest {
   attempt_id: string
   problem_id: string
   user_answer: string
+  essay_image_path?: string
 }
 
 interface GradeResult {
@@ -37,13 +39,20 @@ async function gradeWithGemini(
   rubric: string,
   userAnswer: string,
   imageBase64?: string,
-  imageMimeType?: string
+  imageMimeType?: string,
+  essayImageBase64?: string,
+  essayImageMimeType?: string
 ): Promise<GradeResult> {
-  const prompt = `채점 기준: ${rubric}\n학생 답안: ${userAnswer}\n이 답안을 채점해주세요. JSON으로 응답: {"is_correct": true/false, "score": 0-100, "feedback": "피드백 텍스트"}`
+  const prompt = essayImageBase64
+    ? `채점 기준: ${rubric}\n학생이 다음 이미지에 손으로 답안을 작성했습니다. 이 답안을 채점해주세요.\nJSON으로만 응답: {"is_correct": true/false, "score": 0-100, "feedback": "피드백"}`
+    : `채점 기준: ${rubric}\n학생 답안: ${userAnswer}\n이 답안을 채점해주세요. JSON으로 응답: {"is_correct": true/false, "score": 0-100, "feedback": "피드백 텍스트"}`
 
   const parts: unknown[] = []
   if (imageBase64 && imageMimeType) {
     parts.push({ inline_data: { mime_type: imageMimeType, data: imageBase64 } })
+  }
+  if (essayImageBase64 && essayImageMimeType) {
+    parts.push({ inline_data: { mime_type: essayImageMimeType, data: essayImageBase64 } })
   }
   parts.push({ text: prompt })
 
@@ -72,15 +81,25 @@ async function gradeWithClaude(
   rubric: string,
   userAnswer: string,
   imageBase64?: string,
-  imageMimeType?: string
+  imageMimeType?: string,
+  essayImageBase64?: string,
+  essayImageMimeType?: string
 ): Promise<GradeResult> {
-  const prompt = `채점 기준: ${rubric}\n학생 답안: ${userAnswer}\n이 답안을 채점해주세요. JSON으로 응답: {"is_correct": true/false, "score": 0-100, "feedback": "피드백 텍스트"}`
+  const prompt = essayImageBase64
+    ? `채점 기준: ${rubric}\n학생이 다음 이미지에 손으로 답안을 작성했습니다. 이 답안을 채점해주세요.\nJSON으로만 응답: {"is_correct": true/false, "score": 0-100, "feedback": "피드백"}`
+    : `채점 기준: ${rubric}\n학생 답안: ${userAnswer}\n이 답안을 채점해주세요. JSON으로 응답: {"is_correct": true/false, "score": 0-100, "feedback": "피드백 텍스트"}`
 
   const content: unknown[] = []
   if (imageBase64 && imageMimeType) {
     content.push({
       type: 'image',
       source: { type: 'base64', media_type: imageMimeType, data: imageBase64 },
+    })
+  }
+  if (essayImageBase64 && essayImageMimeType) {
+    content.push({
+      type: 'image',
+      source: { type: 'base64', media_type: essayImageMimeType, data: essayImageBase64 },
     })
   }
   content.push({ type: 'text', text: prompt })
@@ -146,7 +165,7 @@ Deno.serve(async (req: Request) => {
     }
 
     const body: CheckEssayRequest = await req.json()
-    const { attempt_id, problem_id, user_answer } = body
+    const { attempt_id, problem_id, user_answer, essay_image_path } = body
 
     if (!attempt_id || !problem_id || user_answer === undefined) {
       return new Response(
@@ -211,12 +230,32 @@ Deno.serve(async (req: Request) => {
       }
     }
 
+    // Fetch essay image (student's handwritten answer) if provided
+    let essayImageBase64: string | undefined
+    let essayImageMimeType: string | undefined
+
+    if (essay_image_path) {
+      try {
+        const { data: essaySignedData } = await adminClient.storage
+          .from('page-images')
+          .createSignedUrl(essay_image_path, 3600)
+
+        if (essaySignedData?.signedUrl) {
+          const essayImgData = await fetchImageAsBase64(essaySignedData.signedUrl)
+          essayImageBase64 = essayImgData.base64
+          essayImageMimeType = essayImgData.mimeType
+        }
+      } catch (err) {
+        console.error('Failed to fetch essay image:', err)
+      }
+    }
+
     // Grade the answer
     let result: GradeResult
     if (useAi === 'gemini') {
-      result = await gradeWithGemini(apiKey, rubric, user_answer, imageBase64, imageMimeType)
+      result = await gradeWithGemini(apiKey, rubric, user_answer, imageBase64, imageMimeType, essayImageBase64, essayImageMimeType)
     } else {
-      result = await gradeWithClaude(apiKey, rubric, user_answer, imageBase64, imageMimeType)
+      result = await gradeWithClaude(apiKey, rubric, user_answer, imageBase64, imageMimeType, essayImageBase64, essayImageMimeType)
     }
 
     // Update attempt row

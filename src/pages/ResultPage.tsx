@@ -208,7 +208,7 @@ export default function ResultPage() {
         {/* Action buttons */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10, paddingBottom: 32 }}>
           <button
-            onClick={() => navigate('/review')}
+            onClick={() => navigate(`/review?sessionId=${sessionId}`)}
             style={{
               width: '100%',
               padding: '16px',

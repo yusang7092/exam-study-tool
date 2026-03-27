@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useRef, useState, useEffect } from 'react'
 
 interface EssayInputProps {
   value: string
@@ -11,6 +11,12 @@ export default function EssayInput({ value, onTextChange, onPhotoCapture, disabl
   const [mode, setMode] = useState<'text' | 'camera'>('text')
   const [photoPreview, setPhotoPreview] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    return () => {
+      if (photoPreview) URL.revokeObjectURL(photoPreview)
+    }
+  }, [photoPreview])
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -100,6 +106,7 @@ export default function EssayInput({ value, onTextChange, onPhotoCapture, disabl
               />
               <button
                 onClick={() => {
+                  if (photoPreview) URL.revokeObjectURL(photoPreview)
                   setPhotoPreview(null)
                   if (fileInputRef.current) fileInputRef.current.value = ''
                 }}

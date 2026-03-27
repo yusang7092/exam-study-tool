@@ -144,7 +144,7 @@ export function useSolveSession(
   }, [])
 
   const currentProblem = problems[currentIndex] ?? null
-  const completedCount = attempts.length
+  const completedCount = new Set(attempts.map(a => a.problem_id)).size
   const canGoNext = currentIndex < problems.length - 1
   const canGoPrev = currentIndex > 0
 
