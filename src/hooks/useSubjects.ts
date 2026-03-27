@@ -8,7 +8,6 @@ interface UseSubjectsReturn {
   loading: boolean
   error: string | null
   addSubject: (name: string, color: string) => Promise<{ error: string | null }>
-  updateSubject: (id: string, updates: Partial<Pick<Subject, 'name' | 'color'>>) => Promise<{ error: string | null }>
   deleteSubject: (id: string) => Promise<{ error: string | null }>
 }
 
@@ -43,7 +42,7 @@ export function useSubjects(): UseSubjectsReturn {
     void fetchSubjects()
   }, [fetchSubjects])
 
-  const addSubject = async (name: string, color: string): Promise<{ error: string | null }> => {
+  const addSubject = useCallback(async (name: string, color: string): Promise<{ error: string | null }> => {
     if (!user) return { error: '로그인이 필요합니다.' }
     const { data, error: insertError } = await supabase
       .from('subjects')
@@ -53,26 +52,9 @@ export function useSubjects(): UseSubjectsReturn {
     if (insertError) return { error: insertError.message }
     setSubjects(prev => [...prev, data as Subject])
     return { error: null }
-  }
+  }, [user])
 
-  const updateSubject = async (
-    id: string,
-    updates: Partial<Pick<Subject, 'name' | 'color'>>
-  ): Promise<{ error: string | null }> => {
-    if (!user) return { error: '로그인이 필요합니다.' }
-    const { data, error: updateError } = await supabase
-      .from('subjects')
-      .update(updates)
-      .eq('id', id)
-      .eq('user_id', user.id)
-      .select()
-      .single()
-    if (updateError) return { error: updateError.message }
-    setSubjects(prev => prev.map(s => (s.id === id ? (data as Subject) : s)))
-    return { error: null }
-  }
-
-  const deleteSubject = async (id: string): Promise<{ error: string | null }> => {
+  const deleteSubject = useCallback(async (id: string): Promise<{ error: string | null }> => {
     if (!user) return { error: '로그인이 필요합니다.' }
     const { error: deleteError } = await supabase
       .from('subjects')
@@ -82,7 +64,7 @@ export function useSubjects(): UseSubjectsReturn {
     if (deleteError) return { error: deleteError.message }
     setSubjects(prev => prev.filter(s => s.id !== id))
     return { error: null }
-  }
+  }, [user])
 
-  return { subjects, loading, error, addSubject, updateSubject, deleteSubject }
+  return { subjects, loading, error, addSubject, deleteSubject }
 }

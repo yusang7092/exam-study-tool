@@ -91,7 +91,7 @@ function ApiKeySection({ userId }: { userId: string }) {
       setLoadingSettings(true)
       const { data } = await supabase
         .from('user_settings')
-        .select('*')
+        .select('preferred_ai, gemini_api_key, claude_api_key')
         .eq('id', userId)
         .single()
       if (data) {
@@ -109,17 +109,24 @@ function ApiKeySection({ userId }: { userId: string }) {
     setProvider(p)
     setApiKey('')
     setFeedback(null)
-    const { data } = await supabase
+    const col = p === 'gemini' ? 'gemini_api_key' : 'claude_api_key'
+    const { data, error: fetchErr } = await supabase
       .from('user_settings')
-      .select('*')
+      .select(col)
       .eq('id', userId)
       .single()
-    if (data) {
-      setApiKey(p === 'claude' ? (data.claude_api_key ?? '') : (data.gemini_api_key ?? ''))
+    if (fetchErr) {
+      setFeedback({ type: 'error', msg: 'API 키를 불러오지 못했습니다.' })
+      return
     }
+    setApiKey((data as Record<string, string | null>)?.[col] ?? '')
   }
 
   const handleSave = async () => {
+    if (!apiKey.trim()) {
+      setFeedback({ type: 'error', msg: 'API 키를 입력해주세요.' })
+      return
+    }
     setSaving(true)
     setFeedback(null)
     const keyField = provider === 'gemini' ? 'gemini_api_key' : 'claude_api_key'
@@ -234,6 +241,7 @@ function SubjectsSection() {
   const [newName, setNewName] = useState('')
   const [newColor, setNewColor] = useState(PRESET_COLORS[0])
   const [addError, setAddError] = useState<string | null>(null)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
   const [adding, setAdding] = useState(false)
   const [deletingId, setDeletingId] = useState<string | null>(null)
 
@@ -258,8 +266,12 @@ function SubjectsSection() {
   const handleDelete = async (id: string, name: string) => {
     if (!window.confirm(`"${name}" 과목을 삭제하시겠습니까?`)) return
     setDeletingId(id)
-    await deleteSubject(id)
+    setDeleteError(null)
+    const { error: err } = await deleteSubject(id)
     setDeletingId(null)
+    if (err) {
+      setDeleteError(err)
+    }
   }
 
   return (
@@ -269,6 +281,9 @@ function SubjectsSection() {
       {loading && <p style={{ fontSize: 13, color: '#6b7280' }}>불러오는 중...</p>}
       {error && (
         <p style={{ fontSize: 13, color: '#dc2626', marginBottom: 12 }}>{error}</p>
+      )}
+      {deleteError && (
+        <p style={{ fontSize: 13, color: '#dc2626', marginBottom: 12 }}>{deleteError}</p>
       )}
 
       {/* Subject list */}
@@ -411,13 +426,17 @@ function SubjectsSection() {
 
 // ─── Section 3: Account ───────────────────────────────────────────────────────
 function AccountSection() {
-  const { signOut } = useAuth()
   const navigate = useNavigate()
   const [loggingOut, setLoggingOut] = useState(false)
 
   const handleLogout = async () => {
     setLoggingOut(true)
-    await signOut()
+    const { error } = await supabase.auth.signOut()
+    if (error) {
+      setLoggingOut(false)
+      console.error('Logout failed:', error.message)
+      return
+    }
     navigate('/login', { replace: true })
   }
 
@@ -453,15 +472,7 @@ export default function SettingsPage() {
   if (!user) return null
 
   return (
-    <div
-      style={{
-        minHeight: '100vh',
-        background: '#f3f4f6',
-        padding: '32px 16px',
-        fontFamily: 'system-ui, sans-serif',
-        color: '#374151',
-      }}
-    >
+    <div style={{ padding: '32px 16px' }}>
       <div style={{ maxWidth: 640, margin: '0 auto' }}>
         <h1 style={{ margin: '0 0 28px', fontSize: 22, fontWeight: 700, color: '#1f2937' }}>설정</h1>
 
