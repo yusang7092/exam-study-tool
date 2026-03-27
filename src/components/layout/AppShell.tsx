@@ -1,13 +1,7 @@
 import { NavLink, Outlet } from 'react-router-dom'
-import useAuth from '@/hooks/useAuth'
+import { useAuth } from '@/hooks/useAuth'
 import BottomNav from './BottomNav'
-
-const navItems = [
-  { to: '/', label: '대시보드', icon: '🏠', end: true },
-  { to: '/upload', label: '업로드', icon: '📤', end: false },
-  { to: '/review', label: '오답복습', icon: '📝', end: false },
-  { to: '/settings', label: '설정', icon: '⚙️', end: false },
-]
+import { navItems } from './navItems'
 
 export default function AppShell() {
   const { signOut } = useAuth()
@@ -42,9 +36,9 @@ export default function AppShell() {
         <nav style={{ flex: 1, padding: '12px 0' }}>
           {navItems.map(item => (
             <NavLink
-              key={item.to}
-              to={item.to}
-              end={item.end}
+              key={item.path}
+              to={item.path}
+              end={item.path === '/'}
               style={({ isActive }) => ({
                 display: 'flex',
                 alignItems: 'center',
@@ -118,12 +112,12 @@ export default function AppShell() {
       </div>
 
       <style>{`
-        @media (max-width: 768px) {
+        @media (max-width: 1024px) {
           .app-sidebar { display: none !important; }
           .app-main { margin-left: 0 !important; padding-bottom: calc(56px + env(safe-area-inset-bottom)); }
           .app-bottom-nav { display: block; }
         }
-        @media (min-width: 769px) {
+        @media (min-width: 1025px) {
           .app-bottom-nav { display: none; }
         }
       `}</style>

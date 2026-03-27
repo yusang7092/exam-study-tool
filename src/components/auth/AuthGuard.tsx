@@ -1,5 +1,5 @@
 import { Navigate, Outlet } from 'react-router-dom'
-import useAuth from '@/hooks/useAuth'
+import { useAuth } from '@/hooks/useAuth'
 
 export default function AuthGuard() {
   const { user, loading } = useAuth()
@@ -22,7 +22,6 @@ export default function AuthGuard() {
           borderRadius: '50%',
           animation: 'spin 0.8s linear infinite',
         }} />
-        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
       </div>
     )
   }

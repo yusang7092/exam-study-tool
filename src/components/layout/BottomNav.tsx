@@ -1,11 +1,5 @@
 import { NavLink } from 'react-router-dom'
-
-const navItems = [
-  { to: '/', label: '대시보드', icon: '🏠', end: true },
-  { to: '/upload', label: '업로드', icon: '📤', end: false },
-  { to: '/review', label: '오답복습', icon: '📝', end: false },
-  { to: '/settings', label: '설정', icon: '⚙️', end: false },
-]
+import { navItems } from './navItems'
 
 export default function BottomNav() {
   return (
@@ -24,9 +18,9 @@ export default function BottomNav() {
     }}>
       {navItems.map(item => (
         <NavLink
-          key={item.to}
-          to={item.to}
-          end={item.end}
+          key={item.path}
+          to={item.path}
+          end={item.path === '/'}
           style={({ isActive }) => ({
             flex: 1,
             display: 'flex',

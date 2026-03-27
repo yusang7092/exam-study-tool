@@ -1,12 +1,12 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import useAuth from '@/hooks/useAuth'
+import { useAuth } from '@/hooks/useAuth'
 
 type Mode = 'signin' | 'signup'
 
 export default function LoginPage() {
   const navigate = useNavigate()
-  const { signIn, signUp } = useAuth()
+  const { signIn, signUp, user } = useAuth()
 
   const [mode, setMode] = useState<Mode>('signin')
   const [email, setEmail] = useState('')
@@ -14,6 +14,10 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [signupDone, setSignupDone] = useState(false)
+
+  useEffect(() => {
+    if (user) navigate('/', { replace: true })
+  }, [user, navigate])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -25,9 +29,8 @@ export default function LoginPage() {
       if (error) {
         setError(error.message)
         setLoading(false)
-      } else {
-        navigate('/', { replace: true })
       }
+      // navigation handled by useEffect watching user
     } else {
       const { error } = await signUp(email, password)
       if (error) {
