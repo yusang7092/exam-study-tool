@@ -1,4 +1,5 @@
 *, *::before, *::after {
+  -webkit-tap-highlight-color: transparent;
   box-sizing: border-box;
   margin: 0;
   padding: 0;
@@ -7,6 +8,28 @@
 body {
   font-family: system-ui, -apple-system, sans-serif;
   -webkit-font-smoothing: antialiased;
+}
+
+button, a, [role="button"] {
+  touch-action: manipulation;
+  cursor: pointer;
+}
+
+/* Prevent text selection on UI elements */
+button, nav, .no-select {
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* Safe area for notched devices */
+.safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* Minimum tap target size (iOS HIG: 44x44px) */
+button:not(.small) {
+  min-height: 44px;
+  min-width: 44px;
 }
 
 @keyframes spin {
