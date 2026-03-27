@@ -4,7 +4,7 @@ import { useAuth } from '@/hooks/useAuth'
 import type { ProblemSet } from '@/types/index'
 
 interface CreateProblemSetData {
-  subject_id: string | null
+  subject_id: string
   title: string
   file_type: 'pdf' | 'image'
   source_file_url?: string | null
@@ -13,14 +13,16 @@ interface CreateProblemSetData {
 interface UseProblemSetsReturn {
   problemSets: ProblemSet[]
   loading: boolean
+  error: string | null
   createProblemSet: (data: CreateProblemSetData) => Promise<ProblemSet | null>
-  updateProblemSetStatus: (id: string, status: ProblemSet['status']) => Promise<void>
+  updateProblemSetStatus: (id: string, status: ProblemSet['status']) => Promise<{ error: string | null }>
 }
 
 export function useProblemSets(): UseProblemSetsReturn {
   const { user } = useAuth()
   const [problemSets, setProblemSets] = useState<ProblemSet[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   const fetchProblemSets = useCallback(async () => {
     if (!user) {
@@ -29,12 +31,17 @@ export function useProblemSets(): UseProblemSetsReturn {
       return
     }
     setLoading(true)
-    const { data } = await supabase
+    setError(null)
+    const { data, error: fetchError } = await supabase
       .from('problem_sets')
       .select('*')
       .eq('user_id', user.id)
       .order('created_at', { ascending: false })
-    setProblemSets((data as ProblemSet[]) ?? [])
+    if (fetchError) {
+      setError(fetchError.message)
+    } else {
+      setProblemSets((data as ProblemSet[]) ?? [])
+    }
     setLoading(false)
   }, [user])
 
@@ -46,7 +53,7 @@ export function useProblemSets(): UseProblemSetsReturn {
     async (data: CreateProblemSetData): Promise<ProblemSet | null> => {
       if (!user) return null
 
-      const { data: inserted, error } = await supabase
+      const { data: inserted, error: insertError } = await supabase
         .from('problem_sets')
         .insert({
           user_id: user.id,
@@ -59,7 +66,7 @@ export function useProblemSets(): UseProblemSetsReturn {
         .select()
         .single()
 
-      if (error || !inserted) return null
+      if (insertError || !inserted) return null
 
       const ps = inserted as ProblemSet
       setProblemSets(prev => [ps, ...prev])
@@ -69,12 +76,19 @@ export function useProblemSets(): UseProblemSetsReturn {
   )
 
   const updateProblemSetStatus = useCallback(
-    async (id: string, status: ProblemSet['status']): Promise<void> => {
-      await supabase.from('problem_sets').update({ status }).eq('id', id)
+    async (id: string, status: ProblemSet['status']): Promise<{ error: string | null }> => {
+      const { error: updateError } = await supabase
+        .from('problem_sets')
+        .update({ status })
+        .eq('id', id)
+      if (updateError) {
+        return { error: updateError.message }
+      }
       setProblemSets(prev => prev.map(ps => (ps.id === id ? { ...ps, status } : ps)))
+      return { error: null }
     },
     []
   )
 
-  return { problemSets, loading, createProblemSet, updateProblemSetStatus }
+  return { problemSets, loading, error, createProblemSet, updateProblemSetStatus }
 }

@@ -5,30 +5,24 @@ export async function uploadPageImages(
   problemSetId: string,
   pageBlobs: Blob[]
 ): Promise<string[]> {
-  const urls: string[] = []
-
+  const paths: string[] = []
   for (let i = 0; i < pageBlobs.length; i++) {
     const paddedNum = String(i + 1).padStart(3, '0')
     const path = `${userId}/${problemSetId}/page-${paddedNum}.jpg`
-
-    const { error } = await supabase.storage
-      .from('page-images')
-      .upload(path, pageBlobs[i], { contentType: 'image/jpeg', upsert: true })
-
+    const { error } = await supabase.storage.from('page-images').upload(path, pageBlobs[i], {
+      contentType: 'image/jpeg',
+      upsert: false,
+    })
     if (error) throw new Error(`Failed to upload page ${i + 1}: ${error.message}`)
-
-    const { data: signedData, error: signedError } = await supabase.storage
-      .from('page-images')
-      .createSignedUrl(path, 60 * 60 * 24 * 365)
-
-    if (signedError || !signedData?.signedUrl) {
-      throw new Error(`Failed to get signed URL for page ${i + 1}: ${signedError?.message}`)
-    }
-
-    urls.push(signedData.signedUrl)
+    paths.push(path)
   }
+  return paths
+}
 
-  return urls
+export async function getSignedUrl(bucket: string, path: string, expiresIn = 3600): Promise<string> {
+  const { data, error } = await supabase.storage.from(bucket).createSignedUrl(path, expiresIn)
+  if (error || !data) throw new Error(`Failed to create signed URL: ${error?.message}`)
+  return data.signedUrl
 }
 
 export async function uploadSourceFile(

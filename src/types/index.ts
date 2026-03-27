@@ -22,7 +22,7 @@ export interface ProblemSet {
   title: string
   source_file_url: string | null
   file_type: 'pdf' | 'image'
-  status: 'uploading' | 'extracting' | 'reviewing' | 'ready'
+  status: 'uploading' | 'extracting' | 'reviewing' | 'ready' | 'failed'
   created_at: string
 }
 

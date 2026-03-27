@@ -28,10 +28,15 @@ export default function UploadPage() {
 
   const isImage = file ? file.type.startsWith('image/') : false
   const isPDF = file ? file.type === 'application/pdf' : false
-  const canSubmit = file !== null && title.trim().length > 0 && !isUploading
+  const canSubmit = file !== null && title.trim().length > 0 && subjectId !== null && !isUploading
 
   const handleSubmit = async () => {
     if (!file || !user) return
+
+    if (!subjectId) {
+      setError('과목을 선택해주세요.')
+      return
+    }
 
     setIsUploading(true)
     setError(null)
@@ -43,7 +48,7 @@ export default function UploadPage() {
       // Step 1: Create problem_set row + upload files
       const fileType: 'pdf' | 'image' = isPDF ? 'pdf' : 'image'
       const ps = await createProblemSet({
-        subject_id: subjectId,
+        subject_id: subjectId!,
         title,
         file_type: fileType,
       })
@@ -52,13 +57,13 @@ export default function UploadPage() {
       psId = ps.id
       setProblemSetId(ps.id)
 
-      let pageImageUrls: string[] = []
+      let pageImagePaths: string[] = []
 
       if (isPDF) {
         const blobs = await pdfToImages(file)
-        pageImageUrls = await uploadPageImages(user.id, ps.id, blobs)
+        pageImagePaths = await uploadPageImages(user.id, ps.id, blobs)
       } else if (isImage) {
-        pageImageUrls = await uploadPageImages(user.id, ps.id, [file])
+        pageImagePaths = await uploadPageImages(user.id, ps.id, [file])
       }
 
       await uploadSourceFile(user.id, ps.id, file)
@@ -70,7 +75,7 @@ export default function UploadPage() {
       let extractionFailed = false
       try {
         const { error: fnError } = await supabase.functions.invoke('extract-problems', {
-          body: { problem_set_id: ps.id, page_image_urls: pageImageUrls, user_id: user.id },
+          body: { problem_set_id: ps.id, page_image_paths: pageImagePaths, user_id: user.id },
         })
         if (fnError) {
           console.warn('Edge function error (non-blocking):', fnError)
@@ -98,7 +103,7 @@ export default function UploadPage() {
       // Attempt to mark failed problem_set
       if (psId) {
         try {
-          await updateProblemSetStatus(psId, 'reviewing')
+          await updateProblemSetStatus(psId, 'failed')
         } catch {
           // ignore
         }
@@ -108,11 +113,14 @@ export default function UploadPage() {
     }
   }
 
-  const handleRetry = () => {
+  const handleRetry = async () => {
+    if (problemSetId) {
+      await supabase.from('problem_sets').delete().eq('id', problemSetId)
+    }
+    setProblemSetId(null)
+    setStep(1)
     setError(null)
     setIsUploading(false)
-    setStep(1)
-    setProblemSetId(null)
   }
 
   if (isUploading || step === 3) {
@@ -127,10 +135,10 @@ export default function UploadPage() {
         }}
       >
         <h1 style={{ fontSize: 22, fontWeight: 700, marginBottom: 8, color: '#1F2937' }}>
-          업로드 중...
+          {step === 3 ? '업로드 완료!' : '업로드 중...'}
         </h1>
         <p style={{ color: '#6B7280', fontSize: 14, marginBottom: 24 }}>
-          잠시만 기다려 주세요.
+          {step === 3 ? '문제 추출이 완료되었습니다.' : '잠시만 기다려 주세요.'}
         </p>
 
         <UploadProgress step={step} error={error ?? undefined} />
@@ -138,7 +146,7 @@ export default function UploadPage() {
         {error && (
           <div style={{ marginTop: 16, display: 'flex', gap: 12 }}>
             <button
-              onClick={handleRetry}
+              onClick={() => { void handleRetry() }}
               style={{
                 padding: '10px 20px',
                 background: '#6366F1',
@@ -233,7 +241,7 @@ export default function UploadPage() {
       {/* Subject selector */}
       <div style={{ marginBottom: 32 }}>
         <label style={{ display: 'block', fontWeight: 600, fontSize: 13, marginBottom: 8, color: '#374151' }}>
-          과목 (선택)
+          과목 <span style={{ color: '#EF4444' }}>*</span>
         </label>
         <SubjectSelector
           subjects={subjects}

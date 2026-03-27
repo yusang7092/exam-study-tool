@@ -1,4 +1,4 @@
-import { useRef, useState, useCallback } from 'react'
+import { useRef, useState, useCallback, useEffect } from 'react'
 
 interface FileDropZoneProps {
   onFileSelect: (file: File | null) => void
@@ -19,30 +19,57 @@ const PDF_ICON = (
   </svg>
 )
 
+const MAX_SIZE_MB = 50
+const ALLOWED_TYPES = ['application/pdf', 'image/jpeg', 'image/png', 'image/webp']
+
 export default function FileDropZone({ onFileSelect, accept = 'application/pdf,image/*' }: FileDropZoneProps) {
   const inputRef = useRef<HTMLInputElement>(null)
   const [dragging, setDragging] = useState(false)
   const [preview, setPreview] = useState<string | null>(null)
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
+  const [fileError, setFileError] = useState<string | null>(null)
+
+  // Clean up object URL on unmount or when preview changes
+  useEffect(() => {
+    return () => {
+      if (preview) URL.revokeObjectURL(preview)
+    }
+  }, [preview])
 
   const handleFile = useCallback(
     (file: File | null) => {
-      setSelectedFile(file)
-      onFileSelect(file)
+      setFileError(null)
 
       if (!file) {
+        setSelectedFile(null)
+        onFileSelect(null)
+        if (preview) URL.revokeObjectURL(preview)
         setPreview(null)
         return
       }
 
+      if (!ALLOWED_TYPES.includes(file.type)) {
+        setFileError('PDF 또는 이미지 파일만 업로드 가능합니다.')
+        return
+      }
+
+      if (file.size > MAX_SIZE_MB * 1024 * 1024) {
+        setFileError(`파일 크기는 ${MAX_SIZE_MB}MB 이하여야 합니다.`)
+        return
+      }
+
+      setSelectedFile(file)
+      onFileSelect(file)
+
       if (file.type.startsWith('image/')) {
-        const reader = new FileReader()
-        reader.onload = (e) => setPreview(e.target?.result as string)
-        reader.readAsDataURL(file)
+        if (preview) URL.revokeObjectURL(preview)
+        setPreview(URL.createObjectURL(file))
       } else {
+        if (preview) URL.revokeObjectURL(preview)
         setPreview(null)
       }
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [onFileSelect]
   )
 
@@ -75,94 +102,113 @@ export default function FileDropZone({ onFileSelect, accept = 'application/pdf,i
 
   if (selectedFile) {
     return (
-      <div
-        style={{
-          border: '2px solid #6366F1',
-          borderRadius: 12,
-          padding: 20,
-          display: 'flex',
-          alignItems: 'center',
-          gap: 16,
-          background: '#F5F3FF',
-        }}
-      >
-        <div style={{ flexShrink: 0 }}>
-          {preview ? (
-            <img
-              src={preview}
-              alt="preview"
-              style={{ width: 64, height: 64, objectFit: 'cover', borderRadius: 8 }}
-            />
-          ) : (
-            PDF_ICON
-          )}
-        </div>
-        <div style={{ flex: 1, overflow: 'hidden' }}>
-          <div
-            style={{
-              fontWeight: 600,
-              color: '#1F2937',
-              whiteSpace: 'nowrap',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              fontSize: 14,
-            }}
-          >
-            {selectedFile.name}
-          </div>
-          <div style={{ color: '#6B7280', fontSize: 12, marginTop: 2 }}>
-            {formatSize(selectedFile.size)}
-          </div>
-        </div>
-        <button
-          onClick={handleClear}
+      <div>
+        <div
           style={{
-            background: 'none',
-            border: 'none',
-            cursor: 'pointer',
-            color: '#9CA3AF',
-            fontSize: 20,
-            padding: 4,
-            lineHeight: 1,
-            flexShrink: 0,
+            border: '2px solid #6366F1',
+            borderRadius: 12,
+            padding: 20,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 16,
+            background: '#F5F3FF',
           }}
-          aria-label="파일 제거"
         >
-          ✕
-        </button>
+          <div style={{ flexShrink: 0 }}>
+            {preview ? (
+              <img
+                src={preview}
+                alt="preview"
+                style={{ width: 64, height: 64, objectFit: 'cover', borderRadius: 8 }}
+              />
+            ) : (
+              PDF_ICON
+            )}
+          </div>
+          <div style={{ flex: 1, overflow: 'hidden' }}>
+            <div
+              style={{
+                fontWeight: 600,
+                color: '#1F2937',
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                fontSize: 14,
+              }}
+            >
+              {selectedFile.name}
+            </div>
+            <div style={{ color: '#6B7280', fontSize: 12, marginTop: 2 }}>
+              {formatSize(selectedFile.size)}
+            </div>
+          </div>
+          <button
+            onClick={handleClear}
+            style={{
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+              color: '#9CA3AF',
+              fontSize: 20,
+              padding: 4,
+              lineHeight: 1,
+              flexShrink: 0,
+            }}
+            aria-label="파일 제거"
+          >
+            ✕
+          </button>
+        </div>
       </div>
     )
   }
 
   return (
-    <div
-      onClick={() => inputRef.current?.click()}
-      onDragOver={(e) => { e.preventDefault(); setDragging(true) }}
-      onDragLeave={() => setDragging(false)}
-      onDrop={handleDrop}
-      style={{
-        border: `2px dashed ${dragging ? '#6366F1' : '#D1D5DB'}`,
-        borderRadius: 12,
-        padding: '40px 24px',
-        textAlign: 'center',
-        cursor: 'pointer',
-        background: dragging ? '#EEF2FF' : '#FAFAFA',
-        transition: 'all 0.15s ease',
-        userSelect: 'none',
-      }}
-    >
-      <input
-        ref={inputRef}
-        type="file"
-        accept={accept}
-        style={{ display: 'none' }}
-        onChange={handleChange}
-      />
-      <div style={{ fontSize: 40, marginBottom: 12 }}>📄</div>
-      <div style={{ fontWeight: 600, color: '#374151', fontSize: 15, marginBottom: 4 }}>
-        파일을 여기에 끌어다 놓거나 탭하여 선택
+    <div>
+      <div
+        onClick={() => inputRef.current?.click()}
+        onDragOver={(e) => { e.preventDefault(); setDragging(true) }}
+        onDragLeave={() => setDragging(false)}
+        onDrop={handleDrop}
+        style={{
+          border: `2px dashed ${dragging ? '#6366F1' : '#D1D5DB'}`,
+          borderRadius: 12,
+          padding: '40px 24px',
+          textAlign: 'center',
+          cursor: 'pointer',
+          background: dragging ? '#EEF2FF' : '#FAFAFA',
+          transition: 'all 0.15s ease',
+          userSelect: 'none',
+        }}
+      >
+        <input
+          ref={inputRef}
+          type="file"
+          accept={accept}
+          style={{ display: 'none' }}
+          onChange={handleChange}
+        />
+        <div style={{ fontSize: 40, marginBottom: 12 }}>📄</div>
+        <div style={{ fontWeight: 600, color: '#374151', fontSize: 15, marginBottom: 4 }}>
+          파일을 여기에 끌어다 놓거나 탭하여 선택
+        </div>
+        <div style={{ color: '#9CA3AF', fontSize: 13 }}>PDF 또는 이미지 파일 지원</div>
       </div>
-      <div style={{ color: '#9CA3AF', fontSize: 13 }}>PDF 또는 이미지 파일 지원</div>
+      {fileError && (
+        <div
+          style={{
+            marginTop: 8,
+            fontSize: 13,
+            color: '#DC2626',
+            padding: '8px 12px',
+            background: '#FEF2F2',
+            border: '1px solid #FECACA',
+            borderRadius: 8,
+          }}
+        >
+          {fileError}
+        </div>
+      )}
     </div>
   )
 }

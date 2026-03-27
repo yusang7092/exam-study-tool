@@ -34,7 +34,7 @@ create table public.problem_sets (
   title text not null,
   source_file_url text,
   file_type text check (file_type in ('pdf', 'image')) not null default 'image',
-  status text check (status in ('uploading', 'extracting', 'reviewing', 'ready')) not null default 'uploading',
+  status text check (status in ('uploading', 'extracting', 'reviewing', 'ready', 'failed')) not null default 'uploading',
   created_at timestamptz default now()
 );
 alter table public.problem_sets enable row level security;
