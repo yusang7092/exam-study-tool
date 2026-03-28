@@ -1,5 +1,6 @@
 import { NavLink } from 'react-router-dom'
 import { navItems } from './navItems'
+import NavIconSvg from './NavIcon'
 
 export default function BottomNav() {
   return (
@@ -11,7 +12,7 @@ export default function BottomNav() {
       height: 'calc(56px + env(safe-area-inset-bottom))',
       paddingBottom: 'env(safe-area-inset-bottom)',
       background: '#ffffff',
-      borderTop: '1px solid #e5e7eb',
+      borderTop: '1px solid #e8e8e8',
       display: 'flex',
       alignItems: 'stretch',
       zIndex: 100,
@@ -27,17 +28,21 @@ export default function BottomNav() {
             flexDirection: 'column',
             alignItems: 'center',
             justifyContent: 'center',
-            gap: 2,
+            gap: 3,
             textDecoration: 'none',
-            color: isActive ? '#6366f1' : '#9ca3af',
-            fontFamily: 'system-ui, sans-serif',
+            fontFamily: 'system-ui, -apple-system, sans-serif',
             fontSize: 10,
             fontWeight: isActive ? 600 : 400,
-            transition: 'color 0.15s',
+            color: isActive ? '#111111' : '#aaaaaa',
+            letterSpacing: 0.1,
           })}
         >
-          <span style={{ fontSize: 20 }}>{item.icon}</span>
-          <span>{item.label}</span>
+          {({ isActive }) => (
+            <>
+              <NavIconSvg icon={item.icon} active={isActive} />
+              <span>{item.label}</span>
+            </>
+          )}
         </NavLink>
       ))}
     </nav>

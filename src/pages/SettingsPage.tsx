@@ -109,54 +109,59 @@ function SpectrumPicker({ onSelect, onClose }: { value: string; onSelect: (c: st
 // ─── Shared style tokens ──────────────────────────────────────────────────────
 const card: React.CSSProperties = {
   background: '#ffffff',
-  borderRadius: 16,
-  boxShadow: '0 2px 12px rgba(0,0,0,0.07)',
-  padding: '28px 32px',
-  marginBottom: 24,
+  border: '1px solid #e8e8e8',
+  borderRadius: 8,
+  padding: '24px 20px',
+  marginBottom: 20,
 }
 
 const sectionTitle: React.CSSProperties = {
-  margin: '0 0 20px',
-  fontSize: 16,
-  fontWeight: 700,
-  color: '#1f2937',
+  margin: '0 0 16px',
+  fontSize: 14,
+  fontWeight: 600,
+  color: '#111',
+  letterSpacing: -0.1,
 }
 
 const labelStyle: React.CSSProperties = {
   display: 'block',
-  fontSize: 13,
+  fontSize: 12,
   fontWeight: 500,
-  color: '#374151',
+  color: '#666',
   marginBottom: 6,
+  letterSpacing: 0.2,
 }
 
 const inputStyle: React.CSSProperties = {
   width: '100%',
   padding: '10px 12px',
-  border: '1px solid #d1d5db',
-  borderRadius: 8,
+  border: '1px solid #e0e0e0',
+  borderRadius: 6,
   fontSize: 14,
   fontFamily: 'inherit',
   outline: 'none',
   boxSizing: 'border-box',
+  color: '#111',
+  background: '#fff',
 }
 
 const btnPrimary: React.CSSProperties = {
-  padding: '10px 20px',
-  background: '#6366f1',
+  padding: '9px 20px',
+  background: '#111',
   color: '#fff',
   border: 'none',
-  borderRadius: 8,
-  fontSize: 14,
-  fontWeight: 600,
+  borderRadius: 6,
+  fontSize: 13,
+  fontWeight: 500,
   cursor: 'pointer',
   fontFamily: 'inherit',
+  letterSpacing: 0.2,
 }
 
 const btnDanger: React.CSSProperties = {
   padding: '6px 10px',
   background: 'transparent',
-  color: '#ef4444',
+  color: '#dc2626',
   border: '1px solid #fca5a5',
   borderRadius: 6,
   fontSize: 13,
@@ -165,13 +170,13 @@ const btnDanger: React.CSSProperties = {
 }
 
 const btnOutline: React.CSSProperties = {
-  padding: '10px 20px',
+  padding: '9px 20px',
   background: 'transparent',
-  color: '#6366f1',
-  border: '1px solid #6366f1',
-  borderRadius: 8,
-  fontSize: 14,
-  fontWeight: 600,
+  color: '#111',
+  border: '1px solid #e0e0e0',
+  borderRadius: 6,
+  fontSize: 13,
+  fontWeight: 500,
   cursor: 'pointer',
   fontFamily: 'inherit',
 }
@@ -216,50 +221,43 @@ function ApiKeyGuideModal({ provider, onClose }: { provider: Provider; onClose: 
       <div
         onClick={e => e.stopPropagation()}
         style={{
-          background: '#fff', borderRadius: 20, padding: '28px 24px',
-          maxWidth: 420, width: '100%', boxShadow: '0 20px 60px rgba(0,0,0,0.2)',
+          background: '#fff', borderRadius: 10, padding: '24px 20px',
+          maxWidth: 400, width: '100%', boxShadow: '0 8px 32px rgba(0,0,0,0.12)',
+          border: '1px solid #e8e8e8',
         }}
       >
         {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
-          <h3 style={{ margin: 0, fontSize: 17, fontWeight: 700, color: '#1f2937' }}>
-            {isGemini ? '🤖 Gemini' : '🧠 Claude'} API 키 발급 방법
+          <h3 style={{ margin: 0, fontSize: 15, fontWeight: 600, color: '#111' }}>
+            {isGemini ? 'Gemini' : 'Claude'} API 키 발급 방법
           </h3>
           <button
             onClick={onClose}
-            style={{
-              background: 'none', border: 'none', fontSize: 20, cursor: 'pointer',
-              color: '#9ca3af', padding: '0 4px', lineHeight: 1,
-            }}
+            style={{ background: 'none', border: 'none', fontSize: 18, cursor: 'pointer', color: '#999', padding: '0 4px', lineHeight: 1 }}
           >
             ✕
           </button>
         </div>
 
         {/* Free note */}
-        <div style={{
-          background: isGemini ? '#f0fdf4' : '#fef9ec',
-          border: `1px solid ${isGemini ? '#86efac' : '#fcd34d'}`,
-          borderRadius: 10, padding: '10px 14px', marginBottom: 20,
-          fontSize: 13, color: '#374151',
-        }}>
+        <div style={{ background: '#f7f7f7', border: '1px solid #e8e8e8', borderRadius: 6, padding: '9px 12px', marginBottom: 20, fontSize: 12, color: '#555' }}>
           {freeNote}
         </div>
 
         {/* Steps */}
-        <ol style={{ margin: '0 0 24px', padding: 0, listStyle: 'none' }}>
+        <ol style={{ margin: '0 0 20px', padding: 0, listStyle: 'none' }}>
           {steps.map((step, i) => (
-            <li key={i} style={{ display: 'flex', gap: 12, marginBottom: 14, alignItems: 'flex-start' }}>
+            <li key={i} style={{ display: 'flex', gap: 12, marginBottom: 12, alignItems: 'flex-start' }}>
               <span style={{
-                minWidth: 28, height: 28, borderRadius: '50%',
-                background: '#6366f1', color: '#fff',
+                minWidth: 22, height: 22, borderRadius: '50%',
+                background: '#111', color: '#fff',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: 13, fontWeight: 700, flexShrink: 0,
+                fontSize: 11, fontWeight: 600, flexShrink: 0,
               }}>
                 {i + 1}
               </span>
-              <span style={{ fontSize: 14, color: '#374151', lineHeight: 1.6, paddingTop: 4 }}>
-                {step.icon} {step.text}
+              <span style={{ fontSize: 13, color: '#444', lineHeight: 1.6, paddingTop: 2 }}>
+                {step.text}
               </span>
             </li>
           ))}
@@ -272,14 +270,15 @@ function ApiKeyGuideModal({ provider, onClose }: { provider: Provider; onClose: 
           rel="noopener noreferrer"
           style={{
             display: 'block', textAlign: 'center',
-            padding: '12px 20px', background: '#6366f1', color: '#fff',
-            borderRadius: 10, fontSize: 14, fontWeight: 600,
-            textDecoration: 'none', marginBottom: 10,
+            padding: '11px 20px', background: '#111', color: '#fff',
+            borderRadius: 6, fontSize: 13, fontWeight: 500,
+            textDecoration: 'none', marginBottom: 8,
+            letterSpacing: 0.2,
           }}
         >
           {isGemini ? 'Google AI Studio 바로가기 →' : 'Anthropic Console 바로가기 →'}
         </a>
-        <p style={{ fontSize: 12, color: '#9ca3af', textAlign: 'center', margin: 0 }}>
+        <p style={{ fontSize: 11, color: '#bbb', textAlign: 'center', margin: 0 }}>
           새 탭에서 열립니다
         </p>
       </div>
@@ -384,7 +383,7 @@ function ApiKeySection({ userId }: { userId: string }) {
                 gap: 6,
                 cursor: 'pointer',
                 fontSize: 14,
-                color: provider === p ? '#6366f1' : '#374151',
+                color: provider === p ? '#111' : '#888',
                 fontWeight: provider === p ? 600 : 400,
               }}
             >
@@ -394,7 +393,7 @@ function ApiKeySection({ userId }: { userId: string }) {
                 value={p}
                 checked={provider === p}
                 onChange={() => void handleProviderChange(p)}
-                style={{ accentColor: '#6366f1' }}
+                style={{ accentColor: '#111' }}
               />
               {p === 'gemini' ? 'Gemini' : 'Claude'}
             </label>
@@ -412,9 +411,9 @@ function ApiKeySection({ userId }: { userId: string }) {
             type="button"
             onClick={() => setShowGuide(true)}
             style={{
-              background: 'none', border: '1px solid #d1d5db', borderRadius: 6,
-              padding: '3px 10px', fontSize: 12, color: '#6366f1', cursor: 'pointer',
-              fontFamily: 'inherit', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4,
+              background: 'none', border: '1px solid #e0e0e0', borderRadius: 5,
+              padding: '3px 10px', fontSize: 11, color: '#666', cursor: 'pointer',
+              fontFamily: 'inherit', fontWeight: 500, display: 'flex', alignItems: 'center', gap: 4,
             }}
           >
             <span>?</span> 키 발급 방법
@@ -426,8 +425,8 @@ function ApiKeySection({ userId }: { userId: string }) {
           onChange={e => setApiKey(e.target.value)}
           placeholder="API 키를 입력하세요"
           style={inputStyle}
-          onFocus={e => (e.currentTarget.style.borderColor = '#6366f1')}
-          onBlur={e => (e.currentTarget.style.borderColor = '#d1d5db')}
+          onFocus={e => (e.currentTarget.style.borderColor = '#111')}
+          onBlur={e => (e.currentTarget.style.borderColor = '#e0e0e0')}
         />
       </div>
 
@@ -724,8 +723,8 @@ function FeedbackSection({ userId, userEmail }: { userId: string; userEmail: str
             resize: 'vertical',
             lineHeight: 1.6,
           }}
-          onFocus={e => (e.currentTarget.style.borderColor = '#6366f1')}
-          onBlur={e => (e.currentTarget.style.borderColor = '#d1d5db')}
+          onFocus={e => (e.currentTarget.style.borderColor = '#111')}
+          onBlur={e => (e.currentTarget.style.borderColor = '#e0e0e0')}
         />
       </div>
 
@@ -804,27 +803,27 @@ export default function SettingsPage() {
   if (!user) return null
 
   return (
-    <div style={{ padding: '32px 16px' }}>
-      <div style={{ maxWidth: 640, margin: '0 auto' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 28 }}>
-          <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700, color: '#1f2937' }}>설정</h1>
-          <span style={{ fontSize: 12, color: '#9ca3af', fontFamily: 'monospace' }}>v{APP_VERSION}</span>
+    <div style={{ padding: '32px 16px', background: '#fff', minHeight: '100vh', fontFamily: 'system-ui, -apple-system, sans-serif', paddingBottom: 'calc(80px + env(safe-area-inset-bottom))' }}>
+      <div style={{ maxWidth: 560, margin: '0 auto' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
+          <h1 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: '#111', letterSpacing: -0.3 }}>설정</h1>
+          <span style={{ fontSize: 11, color: '#bbb', fontFamily: 'monospace' }}>v{APP_VERSION}</span>
         </div>
 
         <ApiKeySection userId={user.id} />
 
         {/* Divider */}
-        <div style={{ height: 1, background: '#e5e7eb', margin: '0 0 24px' }} />
+        <div style={{ height: 1, background: '#f0f0f0', margin: '0 0 20px' }} />
 
         <SubjectsSection />
 
         {/* Divider */}
-        <div style={{ height: 1, background: '#e5e7eb', margin: '0 0 24px' }} />
+        <div style={{ height: 1, background: '#f0f0f0', margin: '0 0 20px' }} />
 
         <FeedbackSection userId={user.id} userEmail={user.email ?? ''} />
 
         {/* Divider */}
-        <div style={{ height: 1, background: '#e5e7eb', margin: '0 0 24px' }} />
+        <div style={{ height: 1, background: '#f0f0f0', margin: '0 0 20px' }} />
 
         <AccountSection />
       </div>
