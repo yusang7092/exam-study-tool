@@ -129,6 +129,7 @@ export default function UploadPage() {
       const extractStart = Date.now()
       setExtractPercent(0)
       setEstimatedSecsLeft(undefined)
+      let consecutive429 = 0
 
       for (let i = 0; i < total; i++) {
         const blob = blobsForExtraction[i]
@@ -145,18 +146,28 @@ export default function UploadPage() {
 
         let result: { problems: import('@/lib/extractProblems').ExtractedProblem[]; rawText: string } | undefined
         let succeeded = false
-        for (let attempt = 0; attempt < 3; attempt++) {
+        for (let attempt = 0; attempt < 2; attempt++) {
           try {
             result = await extractProblemsFromBlob(geminiKey, blob)
             succeeded = true
+            consecutive429 = 0
             break
           } catch (e) {
             const msg = e instanceof Error ? e.message : String(e)
-            if (msg.includes('429') && attempt < 2) {
-              // Rate limited — wait 60s then retry
-              setProgressText(`페이지 ${i + 1} / ${total} — 잠시 대기 중 (요청 한도)...`)
-              await new Promise(r => setTimeout(r, 62000))
+            if (msg.includes('429')) {
+              consecutive429++
+              // 3 pages in a row → daily quota exhausted, abort
+              if (consecutive429 >= 3) {
+                throw new Error('Gemini API 일일 사용량 초과. 내일 다시 시도하거나 Google AI Studio에서 유료 플랜으로 업그레이드하세요.')
+              }
+              if (attempt < 1) {
+                setProgressText(`페이지 ${i + 1} / ${total} — 잠시 대기 중 (요청 한도)...`)
+                await new Promise(r => setTimeout(r, 30000))
+              } else {
+                allDebugRaw.push(`page ${i + 1} error: 429`)
+              }
             } else {
+              consecutive429 = 0
               allDebugRaw.push(`page ${i + 1} error: ${msg.slice(0, 200)}`)
               break
             }
