@@ -2,20 +2,19 @@ interface UploadProgressProps {
   step: 1 | 2 | 3
   error?: string
   progressText?: string
-  step1Percent?: number        // 0-100, shown during step 1
-  extractPercent?: number      // 0-100, shown during step 2
-  estimatedSecsLeft?: number   // seconds remaining, undefined = unknown
+  step1Percent?: number
+  extractPercent?: number
+  estimatedSecsLeft?: number
 }
 
 interface StepInfo {
   label: string
-  icon: string
 }
 
 const STEPS: StepInfo[] = [
-  { label: '파일 업로드 중...', icon: '☁️' },
-  { label: 'AI 문제 추출 중...', icon: '🤖' },
-  { label: '완료!', icon: '✅' },
+  { label: '파일 업로드' },
+  { label: 'AI 문제 추출' },
+  { label: '완료' },
 ]
 
 function formatTime(secs: number): string {
@@ -36,68 +35,41 @@ export default function UploadProgress({ step, error, progressText, step1Percent
           const isPending = step < stepNum
 
           return (
-            <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 16 }}>
-              {/* Left: circle + line */}
+            <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 14 }}>
+              {/* Left: dot + line */}
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flexShrink: 0 }}>
-                <div
-                  style={{
-                    width: 36,
-                    height: 36,
-                    borderRadius: '50%',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: isDone ? 16 : 18,
-                    background: isDone
-                      ? '#10B981'
-                      : isActive
-                      ? '#6366F1'
-                      : '#F3F4F6',
-                    color: isDone || isActive ? 'white' : '#9CA3AF',
-                    border: isActive ? '2px solid #818CF8' : '2px solid transparent',
-                    transition: 'all 0.2s',
-                    boxShadow: isActive ? '0 0 0 4px #EEF2FF' : 'none',
-                  }}
-                >
-                  {isDone ? '✓' : s.icon}
+                <div style={{
+                  width: 28,
+                  height: 28,
+                  borderRadius: '50%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: 11,
+                  fontWeight: 700,
+                  background: isDone ? '#111' : isActive ? '#111' : '#f0f0f0',
+                  color: isDone || isActive ? '#fff' : '#bbb',
+                  border: isActive ? '2px solid #111' : '2px solid transparent',
+                  transition: 'all 0.2s',
+                }}>
+                  {isDone ? '✓' : stepNum}
                 </div>
                 {i < STEPS.length - 1 && (
-                  <div
-                    style={{
-                      width: 2,
-                      height: 32,
-                      background: isDone ? '#10B981' : '#E5E7EB',
-                      transition: 'background 0.3s',
-                    }}
-                  />
+                  <div style={{ width: 1, height: 28, background: isDone ? '#111' : '#e8e8e8', transition: 'background 0.3s' }} />
                 )}
               </div>
 
               {/* Right: label */}
-              <div
-                style={{
-                  paddingTop: 6,
-                  paddingBottom: i < STEPS.length - 1 ? 32 : 0,
-                  flex: 1,
-                }}
-              >
-                <span
-                  style={{
-                    fontSize: 14,
-                    fontWeight: isActive ? 600 : 400,
-                    color: isDone
-                      ? '#10B981'
-                      : isActive
-                      ? '#4F46E5'
-                      : isPending
-                      ? '#9CA3AF'
-                      : '#1F2937',
-                  }}
-                >
+              <div style={{ paddingTop: 5, paddingBottom: i < STEPS.length - 1 ? 28 : 0, flex: 1 }}>
+                <span style={{
+                  fontSize: 13,
+                  fontWeight: isActive ? 600 : 400,
+                  color: isDone ? '#111' : isActive ? '#111' : isPending ? '#bbb' : '#111',
+                }}>
                   {s.label}
                 </span>
                 {isActive && !error && (
-                  <span style={{ display: 'block', marginTop: 2, fontSize: 12, color: '#818CF8' }}>
+                  <span style={{ display: 'block', marginTop: 2, fontSize: 12, color: '#888' }}>
                     {stepNum === 2 && progressText ? progressText : '처리 중...'}
                   </span>
                 )}
@@ -108,56 +80,31 @@ export default function UploadProgress({ step, error, progressText, step1Percent
       </div>
 
       {step === 1 && !error && step1Percent !== undefined && (
-        <div style={{ marginTop: 20 }}>
-          <div style={{ height: 8, background: '#E5E7EB', borderRadius: 99, overflow: 'hidden' }}>
-            <div style={{ height: '100%', width: `${step1Percent}%`, background: 'linear-gradient(90deg, #6366F1, #818CF8)', borderRadius: 99, transition: 'width 0.4s ease' }} />
+        <div style={{ marginTop: 16 }}>
+          <div style={{ height: 3, background: '#f0f0f0', borderRadius: 99, overflow: 'hidden' }}>
+            <div style={{ height: '100%', width: `${step1Percent}%`, background: '#111', borderRadius: 99, transition: 'width 0.4s ease' }} />
           </div>
-          <div style={{ marginTop: 6, fontSize: 12, color: '#4F46E5', fontWeight: 600 }}>{step1Percent}%</div>
+          <div style={{ marginTop: 5, fontSize: 11, color: '#999' }}>{step1Percent}%</div>
         </div>
       )}
 
       {step === 2 && !error && extractPercent !== undefined && (
-        <div style={{ marginTop: 20 }}>
-          {/* Bar track */}
-          <div style={{ height: 8, background: '#E5E7EB', borderRadius: 99, overflow: 'hidden' }}>
-            <div
-              style={{
-                height: '100%',
-                width: `${extractPercent}%`,
-                background: 'linear-gradient(90deg, #6366F1, #818CF8)',
-                borderRadius: 99,
-                transition: 'width 0.6s ease',
-              }}
-            />
+        <div style={{ marginTop: 16 }}>
+          <div style={{ height: 3, background: '#f0f0f0', borderRadius: 99, overflow: 'hidden' }}>
+            <div style={{ height: '100%', width: `${extractPercent}%`, background: '#111', borderRadius: 99, transition: 'width 0.6s ease' }} />
           </div>
-          {/* Percent + ETA */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 6, fontSize: 12, color: '#6B7280' }}>
-            <span style={{ fontWeight: 600, color: '#4F46E5' }}>{extractPercent}%</span>
-            <span>
-              {estimatedSecsLeft === undefined || estimatedSecsLeft <= 0
-                ? '계산 중...'
-                : formatTime(estimatedSecsLeft)}
-            </span>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 5, fontSize: 11, color: '#999' }}>
+            <span>{extractPercent}%</span>
+            <span>{estimatedSecsLeft === undefined || estimatedSecsLeft <= 0 ? '계산 중...' : formatTime(estimatedSecsLeft)}</span>
           </div>
         </div>
       )}
 
       {error && (
-        <div
-          style={{
-            marginTop: 20,
-            padding: '12px 16px',
-            background: '#FEF2F2',
-            border: '1px solid #FECACA',
-            borderRadius: 8,
-            color: '#DC2626',
-            fontSize: 13,
-          }}
-        >
+        <div style={{ marginTop: 16, padding: '11px 14px', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 6, color: '#dc2626', fontSize: 13 }}>
           <strong>오류:</strong> {error}
         </div>
       )}
-
     </div>
   )
 }

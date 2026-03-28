@@ -5,20 +5,6 @@ interface FileDropZoneProps {
   accept?: string
 }
 
-const PDF_ICON = (
-  <svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <rect x="8" y="4" width="32" height="40" rx="4" fill="#EF4444" />
-    <rect x="8" y="4" width="32" height="40" rx="4" fill="url(#pdfGrad)" />
-    <text x="24" y="30" textAnchor="middle" fill="white" fontSize="11" fontWeight="bold" fontFamily="system-ui">PDF</text>
-    <defs>
-      <linearGradient id="pdfGrad" x1="8" y1="4" x2="40" y2="44" gradientUnits="userSpaceOnUse">
-        <stop stopColor="#EF4444" />
-        <stop offset="1" stopColor="#B91C1C" />
-      </linearGradient>
-    </defs>
-  </svg>
-)
-
 const MAX_SIZE_MB = 50
 const ALLOWED_TYPES = ['application/pdf', 'image/jpeg', 'image/png', 'image/webp']
 
@@ -29,17 +15,13 @@ export default function FileDropZone({ onFileSelect, accept = 'application/pdf,i
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [fileError, setFileError] = useState<string | null>(null)
 
-  // Clean up object URL on unmount or when preview changes
   useEffect(() => {
-    return () => {
-      if (preview) URL.revokeObjectURL(preview)
-    }
+    return () => { if (preview) URL.revokeObjectURL(preview) }
   }, [preview])
 
   const handleFile = useCallback(
     (file: File | null) => {
       setFileError(null)
-
       if (!file) {
         setSelectedFile(null)
         onFileSelect(null)
@@ -47,20 +29,16 @@ export default function FileDropZone({ onFileSelect, accept = 'application/pdf,i
         setPreview(null)
         return
       }
-
       if (!ALLOWED_TYPES.includes(file.type)) {
         setFileError('PDF 또는 이미지 파일만 업로드 가능합니다.')
         return
       }
-
       if (file.size > MAX_SIZE_MB * 1024 * 1024) {
         setFileError(`파일 크기는 ${MAX_SIZE_MB}MB 이하여야 합니다.`)
         return
       }
-
       setSelectedFile(file)
       onFileSelect(file)
-
       if (file.type.startsWith('image/')) {
         if (preview) URL.revokeObjectURL(preview)
         setPreview(URL.createObjectURL(file))
@@ -73,22 +51,15 @@ export default function FileDropZone({ onFileSelect, accept = 'application/pdf,i
     [onFileSelect]
   )
 
-  const handleDrop = useCallback(
-    (e: React.DragEvent<HTMLDivElement>) => {
-      e.preventDefault()
-      setDragging(false)
-      const file = e.dataTransfer.files[0] ?? null
-      if (file) handleFile(file)
-    },
-    [handleFile]
-  )
+  const handleDrop = useCallback((e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault(); setDragging(false)
+    const file = e.dataTransfer.files[0] ?? null
+    if (file) handleFile(file)
+  }, [handleFile])
 
-  const handleChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      handleFile(e.target.files?.[0] ?? null)
-    },
-    [handleFile]
-  )
+  const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    handleFile(e.target.files?.[0] ?? null)
+  }, [handleFile])
 
   const handleClear = useCallback(() => {
     handleFile(null)
@@ -102,63 +73,31 @@ export default function FileDropZone({ onFileSelect, accept = 'application/pdf,i
 
   if (selectedFile) {
     return (
-      <div>
-        <div
-          style={{
-            border: '2px solid #6366F1',
-            borderRadius: 12,
-            padding: 20,
-            display: 'flex',
-            alignItems: 'center',
-            gap: 16,
-            background: '#F5F3FF',
-          }}
-        >
-          <div style={{ flexShrink: 0 }}>
-            {preview ? (
-              <img
-                src={preview}
-                alt="preview"
-                style={{ width: 64, height: 64, objectFit: 'cover', borderRadius: 8 }}
-              />
-            ) : (
-              PDF_ICON
-            )}
-          </div>
-          <div style={{ flex: 1, overflow: 'hidden' }}>
-            <div
-              style={{
-                fontWeight: 600,
-                color: '#1F2937',
-                whiteSpace: 'nowrap',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                fontSize: 14,
-              }}
-            >
-              {selectedFile.name}
+      <div style={{ border: '1px solid #e0e0e0', borderRadius: 8, padding: 16, display: 'flex', alignItems: 'center', gap: 14, background: '#fff' }}>
+        <div style={{ flexShrink: 0 }}>
+          {preview ? (
+            <img src={preview} alt="preview" style={{ width: 52, height: 52, objectFit: 'cover', borderRadius: 6, border: '1px solid #e8e8e8' }} />
+          ) : (
+            <div style={{ width: 44, height: 44, background: '#f7f7f7', border: '1px solid #e0e0e0', borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <span style={{ fontSize: 11, fontWeight: 700, color: '#666', letterSpacing: 0.5 }}>PDF</span>
             </div>
-            <div style={{ color: '#6B7280', fontSize: 12, marginTop: 2 }}>
-              {formatSize(selectedFile.size)}
-            </div>
-          </div>
-          <button
-            onClick={handleClear}
-            style={{
-              background: 'none',
-              border: 'none',
-              cursor: 'pointer',
-              color: '#9CA3AF',
-              fontSize: 20,
-              padding: 4,
-              lineHeight: 1,
-              flexShrink: 0,
-            }}
-            aria-label="파일 제거"
-          >
-            ✕
-          </button>
+          )}
         </div>
+        <div style={{ flex: 1, overflow: 'hidden' }}>
+          <div style={{ fontWeight: 500, color: '#111', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', fontSize: 13 }}>
+            {selectedFile.name}
+          </div>
+          <div style={{ color: '#999', fontSize: 12, marginTop: 2 }}>
+            {formatSize(selectedFile.size)}
+          </div>
+        </div>
+        <button
+          onClick={handleClear}
+          style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#bbb', fontSize: 16, padding: 4, lineHeight: 1, flexShrink: 0 }}
+          aria-label="파일 제거"
+        >
+          ✕
+        </button>
       </div>
     )
   }
@@ -171,41 +110,28 @@ export default function FileDropZone({ onFileSelect, accept = 'application/pdf,i
         onDragLeave={() => setDragging(false)}
         onDrop={handleDrop}
         style={{
-          border: `2px dashed ${dragging ? '#6366F1' : '#D1D5DB'}`,
-          borderRadius: 12,
-          padding: '40px 24px',
+          border: `1px dashed ${dragging ? '#111' : '#d0d0d0'}`,
+          borderRadius: 8,
+          padding: '36px 24px',
           textAlign: 'center',
           cursor: 'pointer',
-          background: dragging ? '#EEF2FF' : '#FAFAFA',
+          background: dragging ? '#f7f7f7' : '#fafafa',
           transition: 'all 0.15s ease',
           userSelect: 'none',
         }}
       >
-        <input
-          ref={inputRef}
-          type="file"
-          accept={accept}
-          style={{ display: 'none' }}
-          onChange={handleChange}
-        />
-        <div style={{ fontSize: 40, marginBottom: 12 }}>📄</div>
-        <div style={{ fontWeight: 600, color: '#374151', fontSize: 15, marginBottom: 4 }}>
-          파일을 여기에 끌어다 놓거나 탭하여 선택
+        <input ref={inputRef} type="file" accept={accept} style={{ display: 'none' }} onChange={handleChange} />
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#bbb" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ margin: '0 auto 12px' }}>
+          <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
+          <polyline points="14 2 14 8 20 8" />
+        </svg>
+        <div style={{ fontWeight: 500, color: '#333', fontSize: 14, marginBottom: 4 }}>
+          파일을 끌어다 놓거나 탭하여 선택
         </div>
-        <div style={{ color: '#9CA3AF', fontSize: 13 }}>PDF 또는 이미지 파일 지원</div>
+        <div style={{ color: '#aaa', fontSize: 12 }}>PDF 또는 이미지</div>
       </div>
       {fileError && (
-        <div
-          style={{
-            marginTop: 8,
-            fontSize: 13,
-            color: '#DC2626',
-            padding: '8px 12px',
-            background: '#FEF2F2',
-            border: '1px solid #FECACA',
-            borderRadius: 8,
-          }}
-        >
+        <div style={{ marginTop: 8, fontSize: 13, color: '#dc2626', padding: '8px 12px', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 6 }}>
           {fileError}
         </div>
       )}

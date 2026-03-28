@@ -17,9 +17,7 @@ const answerTypeLabel = (type: Problem['answer_type']) => {
 
 const formatDate = (dateStr: string) => {
   const d = new Date(dateStr)
-  const month = d.getMonth() + 1
-  const day = d.getDate()
-  return `${month}월 ${day}일`
+  return `${d.getMonth() + 1}월 ${d.getDate()}일`
 }
 
 export default function WrongAnswerCard({ problem, attempt, subjectName, subjectColor }: WrongAnswerCardProps) {
@@ -38,101 +36,38 @@ export default function WrongAnswerCard({ problem, attempt, subjectName, subject
   const hasLongText = problem.question_text && problem.question_text.length > 60
 
   return (
-    <div style={{
-      background: '#fff',
-      borderRadius: 12,
-      boxShadow: '0 1px 4px rgba(0,0,0,0.07)',
-      overflow: 'hidden',
-      marginBottom: 12,
-    }}>
+    <div style={{ background: '#fff', border: '1px solid #e8e8e8', borderRadius: 8, overflow: 'hidden', marginBottom: 10 }}>
       {/* Header */}
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: 8,
-        padding: '12px 16px',
-        borderBottom: '1px solid #f3f4f6',
-      }}>
-        <span style={{
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: 5,
-          padding: '3px 10px',
-          borderRadius: 20,
-          background: subjectColor + '22',
-          color: subjectColor,
-          fontSize: 12,
-          fontWeight: 600,
-        }}>
-          <span style={{
-            display: 'inline-block',
-            width: 6,
-            height: 6,
-            borderRadius: '50%',
-            background: subjectColor,
-          }} />
-          {subjectName}
-        </span>
-        <span style={{
-          padding: '3px 10px',
-          borderRadius: 20,
-          background: '#f3f4f6',
-          color: '#6b7280',
-          fontSize: 12,
-          fontWeight: 500,
-        }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '11px 14px', borderBottom: '1px solid #f0f0f0' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <span style={{ display: 'inline-block', width: 7, height: 7, borderRadius: '50%', background: subjectColor }} />
+          <span style={{ fontSize: 12, fontWeight: 500, color: '#333' }}>{subjectName}</span>
+        </div>
+        <span style={{ padding: '2px 8px', background: '#f5f5f5', color: '#888', borderRadius: 4, fontSize: 11, fontWeight: 400 }}>
           {answerTypeLabel(problem.answer_type)}
         </span>
-        <span style={{ marginLeft: 'auto', fontSize: 12, color: '#9ca3af' }}>
+        <span style={{ marginLeft: 'auto', fontSize: 11, color: '#bbb' }}>
           {formatDate(attempt.attempted_at)}
         </span>
       </div>
 
       {/* Image */}
       {imageUrl && (
-        <div style={{ padding: '10px 16px 0' }}>
-          <img
-            src={imageUrl}
-            alt="문제 이미지"
-            style={{
-              maxWidth: '100%',
-              maxHeight: 160,
-              objectFit: 'contain',
-              borderRadius: 8,
-              border: '1px solid #e5e7eb',
-            }}
-          />
+        <div style={{ padding: '10px 14px 0' }}>
+          <img src={imageUrl} alt="문제 이미지" style={{ maxWidth: '100%', maxHeight: 160, objectFit: 'contain', borderRadius: 6, border: '1px solid #e8e8e8' }} />
         </div>
       )}
 
-      {/* Question text */}
+      {/* Question */}
       {problem.question_text && (
-        <div style={{ padding: '12px 16px 0' }}>
-          <p style={{
-            fontSize: 14,
-            color: '#374151',
-            lineHeight: 1.6,
-            margin: 0,
-            display: '-webkit-box',
-            WebkitLineClamp: expanded ? undefined : 3,
-            WebkitBoxOrient: 'vertical',
-            overflow: expanded ? 'visible' : 'hidden',
-          }}>
+        <div style={{ padding: '11px 14px 0' }}>
+          <p style={{ fontSize: 13, color: '#333', lineHeight: 1.6, margin: 0, display: '-webkit-box', WebkitLineClamp: expanded ? undefined : 3, WebkitBoxOrient: 'vertical', overflow: expanded ? 'visible' : 'hidden' }}>
             {problem.question_text}
           </p>
           {hasLongText && (
             <button
-              className="small"
               onClick={() => setExpanded(prev => !prev)}
-              style={{
-                background: 'none',
-                border: 'none',
-                color: '#6366f1',
-                fontSize: 12,
-                cursor: 'pointer',
-                padding: '4px 0',
-                marginTop: 2,
-              }}
+              style={{ background: 'none', border: 'none', color: '#888', fontSize: 12, cursor: 'pointer', padding: '4px 0', marginTop: 2, fontFamily: 'inherit' }}
             >
               {expanded ? '접기' : '더 보기'}
             </button>
@@ -141,39 +76,15 @@ export default function WrongAnswerCard({ problem, attempt, subjectName, subject
       )}
 
       {/* Answers */}
-      <div style={{ padding: '12px 16px 14px', display: 'flex', flexDirection: 'column', gap: 6 }}>
-        <div style={{
-          padding: '8px 12px',
-          background: '#fef2f2',
-          borderRadius: 8,
-          fontSize: 13,
-          color: '#dc2626',
-        }}>
-          <span style={{ fontWeight: 600 }}>내 답변: </span>
-          {attempt.user_answer ?? '(미입력)'}
+      <div style={{ padding: '11px 14px 14px', display: 'flex', flexDirection: 'column', gap: 6 }}>
+        <div style={{ padding: '7px 10px', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 5, fontSize: 12, color: '#dc2626' }}>
+          <span style={{ fontWeight: 600 }}>내 답변 </span>{attempt.user_answer ?? '(미입력)'}
         </div>
-        <div style={{
-          padding: '8px 12px',
-          background: '#f0fdf4',
-          borderRadius: 8,
-          fontSize: 13,
-          color: '#16a34a',
-        }}>
-          <span style={{ fontWeight: 600 }}>정답: </span>
-          {problem.correct_answer ?? '(정답 없음)'}
+        <div style={{ padding: '7px 10px', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 5, fontSize: 12, color: '#16a34a' }}>
+          <span style={{ fontWeight: 600 }}>정답 </span>{problem.correct_answer ?? '(정답 없음)'}
         </div>
-
-        {/* AI feedback */}
         {attempt.ai_feedback && (
-          <div style={{
-            padding: '8px 12px',
-            background: '#f9fafb',
-            borderRadius: 8,
-            fontSize: 12,
-            color: '#6b7280',
-            fontStyle: 'italic',
-            lineHeight: 1.5,
-          }}>
+          <div style={{ padding: '7px 10px', background: '#fafafa', border: '1px solid #f0f0f0', borderRadius: 5, fontSize: 12, color: '#666', fontStyle: 'italic', lineHeight: 1.5 }}>
             {attempt.ai_feedback}
           </div>
         )}
