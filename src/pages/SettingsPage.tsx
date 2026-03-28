@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '@/hooks/useAuth'
 import { useSubjects } from '@/hooks/useSubjects'
 import { supabase } from '@/lib/supabase'
-import { APP_VERSION } from '@/lib/version'
+import { APP_VERSION, PATCH_NOTES } from '@/lib/version'
 
 type Provider = 'gemini' | 'claude'
 
@@ -755,7 +755,63 @@ function FeedbackSection({ userId, userEmail }: { userId: string; userEmail: str
   )
 }
 
-// ─── Section 4: Account ───────────────────────────────────────────────────────
+// ─── Section 4: Patch Notes ───────────────────────────────────────────────────
+function PatchNotesSection() {
+  const [expanded, setExpanded] = useState(false)
+  const visible = expanded ? PATCH_NOTES : PATCH_NOTES.slice(0, 3)
+
+  return (
+    <div style={card}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+        <h2 style={sectionTitle}>업데이트 내역</h2>
+        <span style={{ fontSize: 11, color: '#bbb', fontFamily: 'monospace' }}>v{APP_VERSION}</span>
+      </div>
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+        {visible.map((note, i) => (
+          <div
+            key={note.version}
+            style={{
+              paddingBottom: i < visible.length - 1 ? 18 : 0,
+              marginBottom: i < visible.length - 1 ? 18 : 0,
+              borderBottom: i < visible.length - 1 ? '1px solid #f0f0f0' : 'none',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 8 }}>
+              <span style={{ fontSize: 13, fontWeight: 700, color: '#111', fontFamily: 'monospace' }}>
+                v{note.version}
+              </span>
+              <span style={{ fontSize: 11, color: '#bbb' }}>{note.date}</span>
+              {i === 0 && (
+                <span style={{ fontSize: 10, fontWeight: 600, color: '#fff', background: '#111', padding: '1px 6px', borderRadius: 3, letterSpacing: 0.3 }}>
+                  최신
+                </span>
+              )}
+            </div>
+            <ul style={{ margin: 0, padding: '0 0 0 14px', display: 'flex', flexDirection: 'column', gap: 4 }}>
+              {note.changes.map((change, j) => (
+                <li key={j} style={{ fontSize: 12, color: '#555', lineHeight: 1.5 }}>
+                  {change}
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))}
+      </div>
+
+      {PATCH_NOTES.length > 3 && (
+        <button
+          onClick={() => setExpanded(prev => !prev)}
+          style={{ marginTop: 14, background: 'none', border: 'none', fontSize: 12, color: '#999', cursor: 'pointer', padding: 0, fontFamily: 'inherit' }}
+        >
+          {expanded ? '접기' : `이전 버전 ${PATCH_NOTES.length - 3}개 더 보기`}
+        </button>
+      )}
+    </div>
+  )
+}
+
+// ─── Section 5: Account ───────────────────────────────────────────────────────
 function AccountSection() {
   const navigate = useNavigate()
   const [loggingOut, setLoggingOut] = useState(false)
@@ -821,6 +877,11 @@ export default function SettingsPage() {
         <div style={{ height: 1, background: '#f0f0f0', margin: '0 0 20px' }} />
 
         <FeedbackSection userId={user.id} userEmail={user.email ?? ''} />
+
+        {/* Divider */}
+        <div style={{ height: 1, background: '#f0f0f0', margin: '0 0 20px' }} />
+
+        <PatchNotesSection />
 
         {/* Divider */}
         <div style={{ height: 1, background: '#f0f0f0', margin: '0 0 20px' }} />
