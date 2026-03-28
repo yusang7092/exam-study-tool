@@ -202,36 +202,21 @@ export default function SolvePage() {
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: '#fff', fontFamily: 'system-ui, sans-serif' }}>
       <ProgressBar current={completedCount} total={totalProblems} />
 
-      <div style={{ padding: '12px 16px 0', color: '#6b7280', fontSize: 13 }}>
+      <div style={{ padding: '10px 16px 0', color: '#999', fontSize: 12, letterSpacing: 0.2 }}>
         문제 {currentIndex + 1}
       </div>
 
       <ProblemDisplay problem={currentProblem} />
 
-      <div style={{ padding: '16px', borderTop: '1px solid #e5e7eb', background: '#fafafa' }}>
+      <div style={{ padding: '14px 16px', borderTop: '1px solid #f0f0f0', background: '#fff' }}>
         {currentProblem.answer_type === 'mcq' && (
-          <MCQInput
-            value={answer}
-            onChange={setAnswer}
-            disabled={alreadyAttempted || submitting}
-            options={currentProblem.options}
-          />
+          <MCQInput value={answer} onChange={setAnswer} disabled={alreadyAttempted || submitting} options={currentProblem.options} />
         )}
         {currentProblem.answer_type === 'short' && (
-          <ShortAnswerInput
-            value={answer}
-            onChange={setAnswer}
-            disabled={alreadyAttempted || submitting}
-            onSubmit={handleSubmit}
-          />
+          <ShortAnswerInput value={answer} onChange={setAnswer} disabled={alreadyAttempted || submitting} onSubmit={handleSubmit} />
         )}
         {currentProblem.answer_type === 'essay' && (
-          <EssayInput
-            value={answer}
-            onTextChange={setAnswer}
-            onPhotoCapture={blob => setEssayPhoto(blob)}
-            disabled={alreadyAttempted || submitting}
-          />
+          <EssayInput value={answer} onTextChange={setAnswer} onPhotoCapture={blob => setEssayPhoto(blob)} disabled={alreadyAttempted || submitting} />
         )}
 
         <div style={{ marginTop: 12, display: 'flex', gap: 8 }}>
@@ -240,15 +225,11 @@ export default function SolvePage() {
               onClick={handleSubmit}
               disabled={submitting || (!answer.trim() && !essayPhoto)}
               style={{
-                flex: 1,
-                padding: '14px',
-                background: submitting || (!answer.trim() && !essayPhoto) ? '#9ca3af' : '#6366f1',
-                color: '#fff',
-                border: 'none',
-                borderRadius: 12,
-                fontSize: 17,
-                fontWeight: 600,
+                flex: 1, padding: '13px',
+                background: submitting || (!answer.trim() && !essayPhoto) ? '#ccc' : '#111',
+                color: '#fff', border: 'none', borderRadius: 7, fontSize: 14, fontWeight: 500,
                 cursor: submitting || (!answer.trim() && !essayPhoto) ? 'not-allowed' : 'pointer',
+                fontFamily: 'inherit',
               }}
             >
               {submitting ? '채점 중...' : '제출'}
@@ -256,38 +237,12 @@ export default function SolvePage() {
           ) : (
             <>
               {!isLastProblem && (
-                <button
-                  onClick={() => nextProblem()}
-                  style={{
-                    flex: 1,
-                    padding: '14px',
-                    background: '#6366f1',
-                    color: '#fff',
-                    border: 'none',
-                    borderRadius: 12,
-                    fontSize: 17,
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                  }}
-                >
+                <button onClick={() => nextProblem()} style={{ flex: 1, padding: '13px', background: '#111', color: '#fff', border: 'none', borderRadius: 7, fontSize: 14, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit' }}>
                   다음 문제
                 </button>
               )}
               {isLastProblem && (
-                <button
-                  onClick={() => navigate(`/result/${sessionId}`)}
-                  style={{
-                    flex: 1,
-                    padding: '14px',
-                    background: '#059669',
-                    color: '#fff',
-                    border: 'none',
-                    borderRadius: 12,
-                    fontSize: 17,
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                  }}
-                >
+                <button onClick={() => navigate(`/result/${sessionId}`)} style={{ flex: 1, padding: '13px', background: '#111', color: '#fff', border: 'none', borderRadius: 7, fontSize: 14, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit' }}>
                   결과 보기
                 </button>
               )}
@@ -296,11 +251,8 @@ export default function SolvePage() {
         </div>
 
         {!submitted && canGoNext && (
-          <div style={{ display: 'flex', gap: 8, marginTop: 8, justifyContent: 'center' }}>
-            <button
-              onClick={() => nextProblem()}
-              style={{ padding: '6px 14px', border: '1px solid #d1d5db', borderRadius: 8, background: 'transparent', color: '#6b7280', cursor: 'pointer', fontSize: 13 }}
-            >
+          <div style={{ display: 'flex', justifyContent: 'center', marginTop: 8 }}>
+            <button onClick={() => nextProblem()} style={{ padding: '6px 14px', border: '1px solid #e0e0e0', borderRadius: 6, background: 'transparent', color: '#999', cursor: 'pointer', fontSize: 12, fontFamily: 'inherit' }}>
               건너뛰기
             </button>
           </div>

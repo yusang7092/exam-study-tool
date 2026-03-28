@@ -9,7 +9,7 @@ interface MCQInputProps {
 
 export default function MCQInput({ value, onChange, disabled, options }: MCQInputProps) {
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
       {CIRCLES.map((circle, idx) => {
         const isSelected = value === circle
         return (
@@ -20,44 +20,36 @@ export default function MCQInput({ value, onChange, disabled, options }: MCQInpu
             style={{
               display: 'flex',
               alignItems: 'center',
-              gap: 14,
-              padding: '12px 16px',
-              border: `2px solid ${isSelected ? '#6366f1' : '#d1d5db'}`,
-              borderRadius: 12,
-              background: isSelected ? '#eef2ff' : '#fff',
+              gap: 12,
+              padding: '12px 14px',
+              border: `1.5px solid ${isSelected ? '#111' : '#e0e0e0'}`,
+              borderRadius: 8,
+              background: isSelected ? '#111' : '#fff',
               cursor: disabled ? 'not-allowed' : 'pointer',
-              opacity: disabled && !isSelected ? 0.6 : 1,
+              opacity: disabled && !isSelected ? 0.5 : 1,
               transition: 'all 0.15s ease',
               textAlign: 'left',
+              fontFamily: 'inherit',
             }}
           >
-            <span
-              style={{
-                flexShrink: 0,
-                width: 56,
-                height: 56,
-                borderRadius: '50%',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: 24,
-                fontWeight: 700,
-                background: isSelected ? '#6366f1' : '#f3f4f6',
-                color: isSelected ? '#fff' : '#374151',
-                transition: 'all 0.15s ease',
-              }}
-            >
+            <span style={{
+              flexShrink: 0,
+              width: 36,
+              height: 36,
+              borderRadius: '50%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: 16,
+              fontWeight: 600,
+              background: isSelected ? 'rgba(255,255,255,0.15)' : '#f5f5f5',
+              color: isSelected ? '#fff' : '#555',
+              transition: 'all 0.15s ease',
+            }}>
               {circle}
             </span>
             {options && options[idx] && (
-              <span
-                style={{
-                  fontSize: 16,
-                  color: isSelected ? '#4338ca' : '#374151',
-                  fontWeight: isSelected ? 600 : 400,
-                  lineHeight: 1.4,
-                }}
-              >
+              <span style={{ fontSize: 14, color: isSelected ? '#fff' : '#333', fontWeight: isSelected ? 500 : 400, lineHeight: 1.4 }}>
                 {options[idx]}
               </span>
             )}

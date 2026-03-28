@@ -101,23 +101,13 @@ export default function ExtractionReviewPage() {
 
   if (!setId) {
     return (
-      <div style={{ padding: 32, fontFamily: 'system-ui, sans-serif', color: '#374151' }}>
-        <p style={{ color: '#EF4444' }}>문제 세트 ID가 없습니다. 업로드 페이지로 돌아가세요.</p>
+      <div style={{ padding: 32, fontFamily: 'system-ui, -apple-system, sans-serif', color: '#333' }}>
+        <p style={{ color: '#dc2626', fontSize: 13, marginBottom: 16 }}>문제 세트 ID가 없습니다. 업로드 페이지로 돌아가세요.</p>
         <button
           onClick={() => navigate('/upload')}
-          style={{
-            marginTop: 16,
-            padding: '10px 20px',
-            background: '#6366F1',
-            color: 'white',
-            border: 'none',
-            borderRadius: 8,
-            fontSize: 14,
-            fontWeight: 600,
-            cursor: 'pointer',
-          }}
+          style={{ padding: '9px 18px', background: '#111', color: '#fff', border: 'none', borderRadius: 6, fontSize: 13, fontWeight: 500, cursor: 'pointer' }}
         >
-          업로드 페이지로
+          업로드로 이동
         </button>
       </div>
     )
@@ -151,61 +141,24 @@ export default function ExtractionReviewPage() {
   const isExtracting = problemSet.status === 'extracting'
 
   return (
-    <div
-      style={{
-        maxWidth: 720,
-        margin: '0 auto',
-        padding: '24px 20px 120px',
-        fontFamily: 'system-ui, sans-serif',
-        color: '#374151',
-      }}
-    >
+    <div style={{ maxWidth: 720, margin: '0 auto', padding: '24px 16px 120px', fontFamily: 'system-ui, -apple-system, sans-serif', color: '#333' }}>
       {/* Header */}
-      <div style={{ marginBottom: 24 }}>
-        <h1
-          style={{
-            fontSize: 22,
-            fontWeight: 700,
-            color: '#1F2937',
-            marginBottom: 4,
-          }}
-        >
+      <div style={{ marginBottom: 20 }}>
+        <h1 style={{ fontSize: 18, fontWeight: 700, color: '#111', marginBottom: 4, letterSpacing: -0.3 }}>
           {problemSet.title}
         </h1>
-        <p style={{ fontSize: 14, color: '#6B7280' }}>
-          {isExtracting
-            ? 'AI가 문제를 추출하고 있습니다...'
-            : `문제 ${problems.length}개`}
+        <p style={{ fontSize: 12, color: '#999', margin: 0 }}>
+          {isExtracting ? 'AI 추출 중...' : `문제 ${problems.length}개`}
         </p>
       </div>
 
       {/* Extracting spinner */}
       {isExtracting && (
-        <div
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '60px 20px',
-            gap: 20,
-          }}
-        >
-          <div
-            style={{
-              width: 48,
-              height: 48,
-              border: '4px solid #E5E7EB',
-              borderTopColor: '#6366F1',
-              borderRadius: '50%',
-              animation: 'spin 0.8s linear infinite',
-            }}
-          />
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '60px 20px', gap: 16 }}>
+          <div style={{ width: 32, height: 32, border: '2px solid #e8e8e8', borderTopColor: '#111', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
           <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-          <p style={{ fontSize: 16, color: '#6B7280', textAlign: 'center' }}>
-            AI가 문제를 추출하고 있습니다...
-            <br />
-            <span style={{ fontSize: 13 }}>잠시만 기다려 주세요.</span>
+          <p style={{ fontSize: 13, color: '#999', textAlign: 'center', margin: 0, lineHeight: 1.6 }}>
+            AI가 문제를 추출하고 있습니다<br />잠시만 기다려 주세요.
           </p>
         </div>
       )}
@@ -214,54 +167,30 @@ export default function ExtractionReviewPage() {
       {!isExtracting && (
         <>
           {problemsLoading ? (
-            <div style={{ color: '#6B7280', fontSize: 14, textAlign: 'center', padding: 40 }}>
-              문제 불러오는 중...
-            </div>
+            <div style={{ color: '#999', fontSize: 13, textAlign: 'center', padding: 40 }}>문제 불러오는 중...</div>
           ) : problems.length === 0 ? (
-            <div
-              style={{
-                textAlign: 'center',
-                padding: '40px 20px',
-                background: note === 'no_problems' ? '#FFF7ED' : '#F9FAFB',
-                borderRadius: 12,
-                border: `1.5px dashed ${note === 'no_problems' ? '#FED7AA' : '#D1D5DB'}`,
-                fontSize: 14,
-              }}
-            >
+            <div style={{ padding: '32px 20px', background: '#fafafa', borderRadius: 8, border: '1px dashed #e0e0e0', fontSize: 13 }}>
               {note === 'no_problems' ? (
                 <>
-                  <p style={{ fontSize: 20, marginBottom: 8 }}>🤔</p>
-                  <p style={{ fontWeight: 600, color: '#92400E', marginBottom: 6 }}>
-                    AI가 문제를 찾지 못했어요
-                  </p>
-                  <p style={{ color: '#B45309', marginBottom: 12, lineHeight: 1.6 }}>
-                    이미지가 흐리거나 문제 형식이 달라서 인식이 안 됐을 수 있어요.
-                    <br />아래에서 문제를 직접 추가해 주세요.
+                  <p style={{ fontWeight: 600, color: '#333', marginBottom: 6, margin: '0 0 6px' }}>AI가 문제를 찾지 못했습니다</p>
+                  <p style={{ color: '#888', lineHeight: 1.6, margin: '0 0 12px' }}>
+                    이미지가 흐리거나 문제 형식이 달라 인식되지 않았을 수 있습니다.<br />아래에서 문제를 직접 추가해 주세요.
                   </p>
                   {aiDebugRaw && aiDebugRaw.length > 0 && (
                     <details style={{ textAlign: 'left', marginTop: 8 }}>
-                      <summary style={{ cursor: 'pointer', color: '#6B7280', fontSize: 12 }}>
-                        AI 응답 원문 보기 (개발자용)
-                      </summary>
-                      <pre style={{
-                        marginTop: 8, padding: 10, background: '#F3F4F6',
-                        borderRadius: 6, fontSize: 11, whiteSpace: 'pre-wrap',
-                        wordBreak: 'break-all', color: '#374151', maxHeight: 200, overflow: 'auto',
-                      }}>
+                      <summary style={{ cursor: 'pointer', color: '#999', fontSize: 11 }}>AI 응답 원문 (개발자용)</summary>
+                      <pre style={{ marginTop: 8, padding: 10, background: '#f5f5f5', borderRadius: 5, fontSize: 11, whiteSpace: 'pre-wrap', wordBreak: 'break-all', color: '#555', maxHeight: 200, overflow: 'auto' }}>
                         {aiDebugRaw.join('\n---\n')}
                       </pre>
                     </details>
                   )}
                 </>
               ) : (
-                <>
-                  <p style={{ color: '#9CA3AF', marginBottom: 8 }}>추출된 문제가 없습니다.</p>
-                  <p style={{ color: '#9CA3AF' }}>아래 버튼으로 문제를 직접 추가할 수 있습니다.</p>
-                </>
+                <p style={{ color: '#999', margin: 0 }}>추출된 문제가 없습니다. 아래 버튼으로 직접 추가할 수 있습니다.</p>
               )}
             </div>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               {problems.map(problem => (
                 <ProblemCard
                   key={problem.id}
@@ -282,61 +211,24 @@ export default function ExtractionReviewPage() {
 
       {/* Bottom action bar */}
       {!isExtracting && (
-        <div
-          style={{
-            position: 'fixed',
-            bottom: 'calc(56px + env(safe-area-inset-bottom))',
-            left: 0,
-            right: 0,
-            background: 'white',
-            borderTop: '1px solid #E5E7EB',
-            padding: '12px 20px',
-            display: 'flex',
-            gap: 12,
-            justifyContent: 'flex-end',
-            alignItems: 'center',
-            zIndex: 101,
-          }}
-        >
-          {/* Add problem by image button */}
+        <div style={{ position: 'fixed', bottom: 'calc(56px + env(safe-area-inset-bottom))', left: 0, right: 0, background: '#fff', borderTop: '1px solid #f0f0f0', padding: '10px 16px', display: 'flex', gap: 10, justifyContent: 'flex-end', alignItems: 'center', zIndex: 101 }}>
           <button
             type="button"
             onClick={() => setShowAddByImage(true)}
-            style={{
-              padding: '10px 18px',
-              background: 'white',
-              color: '#6366F1',
-              border: '1.5px solid #6366F1',
-              borderRadius: 8,
-              fontSize: 14,
-              fontWeight: 600,
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 6,
-            }}
+            style={{ padding: '9px 16px', background: '#fff', color: '#333', border: '1px solid #e0e0e0', borderRadius: 6, fontSize: 13, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit' }}
           >
-            <span style={{ fontSize: 16 }}>📷</span>
             문제 추가
           </button>
-
-          {/* Start learning button */}
           <button
             type="button"
             onClick={() => void handleStartLearning()}
             disabled={startingSession || problems.length === 0}
             style={{
-              padding: '10px 22px',
-              background:
-                startingSession || problems.length === 0 ? '#E5E7EB' : '#6366F1',
-              color:
-                startingSession || problems.length === 0 ? '#9CA3AF' : 'white',
-              border: 'none',
-              borderRadius: 8,
-              fontSize: 14,
-              fontWeight: 700,
-              cursor:
-                startingSession || problems.length === 0 ? 'not-allowed' : 'pointer',
+              padding: '9px 20px',
+              background: startingSession || problems.length === 0 ? '#ccc' : '#111',
+              color: '#fff', border: 'none', borderRadius: 6, fontSize: 13, fontWeight: 500,
+              cursor: startingSession || problems.length === 0 ? 'not-allowed' : 'pointer',
+              fontFamily: 'inherit',
             }}
           >
             {startingSession ? '준비 중...' : '학습 시작'}
