@@ -16,7 +16,7 @@ create policy "Users manage own settings" on public.user_settings
 
 -- subjects
 create table public.subjects (
-  id uuid default uuid_generate_v4() primary key,
+  id uuid default gen_random_uuid() primary key,
   user_id uuid references auth.users on delete cascade not null,
   name text not null,
   color text not null default '#6366f1',
@@ -28,7 +28,7 @@ create policy "Users manage own subjects" on public.subjects
 
 -- problem_sets
 create table public.problem_sets (
-  id uuid default uuid_generate_v4() primary key,
+  id uuid default gen_random_uuid() primary key,
   user_id uuid references auth.users on delete cascade not null,
   subject_id uuid references public.subjects on delete cascade not null,
   title text not null,
@@ -43,7 +43,7 @@ create policy "Users manage own problem_sets" on public.problem_sets
 
 -- problems
 create table public.problems (
-  id uuid default uuid_generate_v4() primary key,
+  id uuid default gen_random_uuid() primary key,
   problem_set_id uuid references public.problem_sets on delete cascade not null,
   user_id uuid references auth.users on delete cascade not null,
   subject_id uuid references public.subjects on delete cascade not null,
@@ -63,7 +63,7 @@ create policy "Users manage own problems" on public.problems
 
 -- solve_sessions
 create table public.solve_sessions (
-  id uuid default uuid_generate_v4() primary key,
+  id uuid default gen_random_uuid() primary key,
   user_id uuid references auth.users on delete cascade not null,
   subject_id uuid references public.subjects on delete set null,
   mode text check (mode in ('sequential', 'random')) not null default 'sequential',
@@ -77,7 +77,7 @@ create policy "Users manage own sessions" on public.solve_sessions
 
 -- attempts
 create table public.attempts (
-  id uuid default uuid_generate_v4() primary key,
+  id uuid default gen_random_uuid() primary key,
   session_id uuid references public.solve_sessions on delete cascade not null,
   problem_id uuid references public.problems on delete cascade not null,
   user_id uuid references auth.users on delete cascade not null,
