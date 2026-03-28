@@ -28,7 +28,8 @@ export async function resizeImageBlob(blob: Blob, maxDim = 1600, quality = 0.85)
 export async function uploadPageImages(
   userId: string,
   problemSetId: string,
-  pageBlobs: Blob[]
+  pageBlobs: Blob[],
+  onProgress?: (current: number, total: number) => void
 ): Promise<string[]> {
   const paths: string[] = []
   for (let i = 0; i < pageBlobs.length; i++) {
@@ -43,6 +44,7 @@ export async function uploadPageImages(
     })
     if (error) throw new Error(`Failed to upload page ${i + 1}: ${error.message}`)
     paths.push(path)
+    onProgress?.(i + 1, pageBlobs.length)
   }
   return paths
 }

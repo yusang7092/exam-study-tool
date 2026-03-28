@@ -2,7 +2,8 @@ interface UploadProgressProps {
   step: 1 | 2 | 3
   error?: string
   progressText?: string
-  extractPercent?: number      // 0-100
+  step1Percent?: number        // 0-100, shown during step 1
+  extractPercent?: number      // 0-100, shown during step 2
   estimatedSecsLeft?: number   // seconds remaining, undefined = unknown
 }
 
@@ -24,7 +25,7 @@ function formatTime(secs: number): string {
   return s > 0 ? `약 ${m}분 ${s}초 남음` : `약 ${m}분 남음`
 }
 
-export default function UploadProgress({ step, error, progressText, extractPercent, estimatedSecsLeft }: UploadProgressProps) {
+export default function UploadProgress({ step, error, progressText, step1Percent, extractPercent, estimatedSecsLeft }: UploadProgressProps) {
   return (
     <div style={{ padding: '24px 0' }}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
@@ -105,6 +106,15 @@ export default function UploadProgress({ step, error, progressText, extractPerce
           )
         })}
       </div>
+
+      {step === 1 && !error && step1Percent !== undefined && (
+        <div style={{ marginTop: 20 }}>
+          <div style={{ height: 8, background: '#E5E7EB', borderRadius: 99, overflow: 'hidden' }}>
+            <div style={{ height: '100%', width: `${step1Percent}%`, background: 'linear-gradient(90deg, #6366F1, #818CF8)', borderRadius: 99, transition: 'width 0.4s ease' }} />
+          </div>
+          <div style={{ marginTop: 6, fontSize: 12, color: '#4F46E5', fontWeight: 600 }}>{step1Percent}%</div>
+        </div>
+      )}
 
       {step === 2 && !error && extractPercent !== undefined && (
         <div style={{ marginTop: 20 }}>

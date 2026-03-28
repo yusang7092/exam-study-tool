@@ -42,6 +42,7 @@ export default function UploadPage() {
   const [error, setError] = useState<string | null>(null)
   const [problemSetId, setProblemSetId] = useState<string | null>(null)
   const [progressText, setProgressText] = useState('')
+  const [step1Percent, setStep1Percent] = useState<number | undefined>(undefined)
   const [extractPercent, setExtractPercent] = useState<number | undefined>(undefined)
   const [estimatedSecsLeft, setEstimatedSecsLeft] = useState<number | undefined>(undefined)
 
@@ -85,14 +86,20 @@ export default function UploadPage() {
 
       let pageBlobs: Blob[] = []
 
+      setStep1Percent(0)
       try {
         if (isPDF) {
-          pageBlobs = await pdfToImages(file)
+          pageBlobs = await pdfToImages(file, (cur, tot) =>
+            setStep1Percent(Math.round((cur / tot) * 50))
+          )
           if (!pageBlobs.length) throw new Error('PDF에서 이미지를 추출하지 못했습니다.')
-          await uploadPageImages(user.id, ps.id, pageBlobs)
+          await uploadPageImages(user.id, ps.id, pageBlobs, (cur, tot) =>
+            setStep1Percent(50 + Math.round((cur / tot) * 50))
+          )
         } else if (isImage) {
           pageBlobs = [file]
-          await uploadPageImages(user.id, ps.id, pageBlobs)
+          setStep1Percent(50)
+          await uploadPageImages(user.id, ps.id, pageBlobs, () => setStep1Percent(100))
         }
         await uploadSourceFile(user.id, ps.id, file)
       } catch (uploadErr) {
@@ -236,6 +243,7 @@ export default function UploadPage() {
     } finally {
       setIsUploading(false)
       setProgressText('')
+      setStep1Percent(undefined)
       setExtractPercent(undefined)
       setEstimatedSecsLeft(undefined)
     }
@@ -274,6 +282,7 @@ export default function UploadPage() {
           step={step}
           error={error ?? undefined}
           progressText={progressText}
+          step1Percent={step1Percent}
           extractPercent={extractPercent}
           estimatedSecsLeft={estimatedSecsLeft}
         />

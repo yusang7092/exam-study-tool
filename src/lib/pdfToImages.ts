@@ -5,7 +5,10 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
   import.meta.url
 ).href
 
-export async function pdfToImages(file: File): Promise<Blob[]> {
+export async function pdfToImages(
+  file: File,
+  onProgress?: (current: number, total: number) => void
+): Promise<Blob[]> {
   const arrayBuffer = await file.arrayBuffer()
   const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer })
   const pdf = await loadingTask.promise
@@ -39,6 +42,7 @@ export async function pdfToImages(file: File): Promise<Blob[]> {
       canvas.width = 0
       canvas.height = 0
       blobs.push(blob)
+      onProgress?.(i, pdf.numPages)
     }
   } finally {
     await pdf.destroy()
