@@ -136,6 +136,8 @@ export default function UploadPage() {
       const extractStart = Date.now()
       setExtractPercent(0)
       setEstimatedSecsLeft(undefined)
+      setProgressText(`키: ${geminiKey.slice(0, 8)}… (총 ${total}페이지)`)
+      await new Promise(r => setTimeout(r, 2000))
       let consecutive429 = 0
 
       for (let i = 0; i < total; i++) {
