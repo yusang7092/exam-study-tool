@@ -39,6 +39,7 @@ export interface Problem {
   correct_answer: string | null
   options: string[] | null
   source_page: number | null
+  explanation: string | null
   created_at: string
 }
 

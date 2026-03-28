@@ -9,6 +9,7 @@ import ExtractionReviewPage from '@/pages/ExtractionReviewPage'
 import SolvePage from '@/pages/SolvePage'
 import ResultPage from '@/pages/ResultPage'
 import ReviewPage from '@/pages/ReviewPage'
+import SubjectDetailPage from '@/pages/SubjectDetailPage'
 
 export default function App() {
   return (
@@ -27,6 +28,7 @@ export default function App() {
             <Route path="solve/:sessionId" element={<SolvePage />} />
             <Route path="result/:sessionId" element={<ResultPage />} />
             <Route path="review" element={<ReviewPage />} />
+            <Route path="subject/:subjectId" element={<SubjectDetailPage />} />
           </Route>
         </Route>
 

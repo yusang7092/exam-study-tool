@@ -8,7 +8,7 @@ interface UseProblemsReturn {
   loading: boolean
   error: string | null
   updateProblem: (id: string, updates: Partial<Pick<Problem, 'question_text' | 'answer_type' | 'correct_answer' | 'options'>>) => Promise<{ error: string | null }>
-  addProblem: (problemSetId: string, subjectId: string) => Promise<Problem | null>
+  addProblem: (problemSetId: string, subjectId: string, data?: Partial<Pick<Problem, 'question_text' | 'answer_type' | 'options' | 'correct_answer' | 'explanation'>>) => Promise<Problem | null>
   deleteProblem: (id: string) => Promise<void>
   refetch: () => Promise<void>
 }
@@ -70,22 +70,23 @@ export function useProblems(problemSetId: string | null): UseProblemsReturn {
   )
 
   const addProblem = useCallback(
-    async (psId: string, subjectId: string): Promise<Problem | null> => {
+    async (psId: string, subjectId: string, data?: Partial<Pick<Problem, 'question_text' | 'answer_type' | 'options' | 'correct_answer' | 'explanation'>>): Promise<Problem | null> => {
       if (!user) return null
 
       const maxSeq = problems.reduce((m, p) => Math.max(m, p.sequence_num), 0)
 
-      const { data, error: insertError } = await supabase
+      const { data: inserted, error: insertError } = await supabase
         .from('problems')
         .insert({
           problem_set_id: psId,
           user_id: user.id,
           subject_id: subjectId,
           sequence_num: maxSeq + 1,
-          question_text: '',
-          answer_type: 'mcq',
-          options: ['①', '②', '③', '④', '⑤'],
-          correct_answer: null,
+          question_text: data?.question_text ?? '',
+          answer_type: data?.answer_type ?? 'short',
+          options: data?.options ?? null,
+          correct_answer: data?.correct_answer ?? null,
+          explanation: data?.explanation ?? null,
           image_url: null,
           crop_rect: null,
           source_page: null,
@@ -93,9 +94,9 @@ export function useProblems(problemSetId: string | null): UseProblemsReturn {
         .select()
         .single()
 
-      if (insertError || !data) return null
+      if (insertError || !inserted) return null
 
-      const newProblem = data as Problem
+      const newProblem = inserted as Problem
       setProblems(prev => [...prev, newProblem])
       return newProblem
     },

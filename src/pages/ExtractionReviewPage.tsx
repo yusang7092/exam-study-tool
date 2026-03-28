@@ -4,6 +4,7 @@ import { useAuth } from '@/hooks/useAuth'
 import { useProblems } from '@/hooks/useProblems'
 import { supabase } from '@/lib/supabase'
 import ProblemCard from '@/components/extraction/ProblemCard'
+import AddByImageModal from '@/components/extraction/AddByImageModal'
 import type { ProblemSet } from '@/types/index'
 
 export default function ExtractionReviewPage() {
@@ -12,6 +13,17 @@ export default function ExtractionReviewPage() {
   const { user } = useAuth()
 
   const setId = searchParams.get('setId')
+  const note = searchParams.get('note')
+
+  const [showAddByImage, setShowAddByImage] = useState(false)
+
+  const [aiDebugRaw] = useState<string[] | null>(() => {
+    try {
+      const raw = localStorage.getItem('__ai_debug_raw')
+      if (raw) { localStorage.removeItem('__ai_debug_raw'); return JSON.parse(raw) as string[] }
+    } catch { /* ignore */ }
+    return null
+  })
 
   const [problemSet, setProblemSet] = useState<ProblemSet | null>(null)
   const [psLoading, setPsLoading] = useState(true)
@@ -86,10 +98,6 @@ export default function ExtractionReviewPage() {
     }
   }
 
-  const handleAddProblem = async () => {
-    if (!setId || !problemSet) return
-    await addProblem(setId, problemSet.subject_id)
-  }
 
   if (!setId) {
     return (
@@ -213,16 +221,44 @@ export default function ExtractionReviewPage() {
             <div
               style={{
                 textAlign: 'center',
-                padding: '48px 20px',
-                background: '#F9FAFB',
+                padding: '40px 20px',
+                background: note === 'no_problems' ? '#FFF7ED' : '#F9FAFB',
                 borderRadius: 12,
-                border: '1.5px dashed #D1D5DB',
-                color: '#9CA3AF',
+                border: `1.5px dashed ${note === 'no_problems' ? '#FED7AA' : '#D1D5DB'}`,
                 fontSize: 14,
               }}
             >
-              <p style={{ marginBottom: 8 }}>추출된 문제가 없습니다.</p>
-              <p>아래 버튼으로 문제를 직접 추가할 수 있습니다.</p>
+              {note === 'no_problems' ? (
+                <>
+                  <p style={{ fontSize: 20, marginBottom: 8 }}>🤔</p>
+                  <p style={{ fontWeight: 600, color: '#92400E', marginBottom: 6 }}>
+                    AI가 문제를 찾지 못했어요
+                  </p>
+                  <p style={{ color: '#B45309', marginBottom: 12, lineHeight: 1.6 }}>
+                    이미지가 흐리거나 문제 형식이 달라서 인식이 안 됐을 수 있어요.
+                    <br />아래에서 문제를 직접 추가해 주세요.
+                  </p>
+                  {aiDebugRaw && aiDebugRaw.length > 0 && (
+                    <details style={{ textAlign: 'left', marginTop: 8 }}>
+                      <summary style={{ cursor: 'pointer', color: '#6B7280', fontSize: 12 }}>
+                        AI 응답 원문 보기 (개발자용)
+                      </summary>
+                      <pre style={{
+                        marginTop: 8, padding: 10, background: '#F3F4F6',
+                        borderRadius: 6, fontSize: 11, whiteSpace: 'pre-wrap',
+                        wordBreak: 'break-all', color: '#374151', maxHeight: 200, overflow: 'auto',
+                      }}>
+                        {aiDebugRaw.join('\n---\n')}
+                      </pre>
+                    </details>
+                  )}
+                </>
+              ) : (
+                <>
+                  <p style={{ color: '#9CA3AF', marginBottom: 8 }}>추출된 문제가 없습니다.</p>
+                  <p style={{ color: '#9CA3AF' }}>아래 버튼으로 문제를 직접 추가할 수 있습니다.</p>
+                </>
+              )}
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -235,6 +271,8 @@ export default function ExtractionReviewPage() {
                     if (updateErr) console.error('Failed to update problem:', updateErr)
                   }}
                   onDelete={() => void deleteProblem(problem.id)}
+                  userId={user?.id}
+                  problemSetId={setId ?? undefined}
                 />
               ))}
             </div>
@@ -247,7 +285,7 @@ export default function ExtractionReviewPage() {
         <div
           style={{
             position: 'fixed',
-            bottom: 0,
+            bottom: 'calc(56px + env(safe-area-inset-bottom))',
             left: 0,
             right: 0,
             background: 'white',
@@ -257,13 +295,13 @@ export default function ExtractionReviewPage() {
             gap: 12,
             justifyContent: 'flex-end',
             alignItems: 'center',
-            zIndex: 100,
+            zIndex: 101,
           }}
         >
-          {/* Add problem button */}
+          {/* Add problem by image button */}
           <button
             type="button"
-            onClick={() => void handleAddProblem()}
+            onClick={() => setShowAddByImage(true)}
             style={{
               padding: '10px 18px',
               background: 'white',
@@ -278,7 +316,7 @@ export default function ExtractionReviewPage() {
               gap: 6,
             }}
           >
-            <span style={{ fontSize: 18, lineHeight: 1 }}>+</span>
+            <span style={{ fontSize: 16 }}>📷</span>
             문제 추가
           </button>
 
@@ -304,6 +342,15 @@ export default function ExtractionReviewPage() {
             {startingSession ? '준비 중...' : '학습 시작'}
           </button>
         </div>
+      )}
+      {showAddByImage && problemSet && (
+        <AddByImageModal
+          onClose={() => setShowAddByImage(false)}
+          onSave={async (data) => {
+            await addProblem(setId!, problemSet.subject_id, data)
+            void refetch()
+          }}
+        />
       )}
     </div>
   )

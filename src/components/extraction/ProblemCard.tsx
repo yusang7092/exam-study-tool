@@ -2,14 +2,17 @@ import { useState, useEffect } from 'react'
 import type { Problem } from '@/types/index'
 import AnswerTypeSelector from './AnswerTypeSelector'
 import MCQAnswerInput from './MCQAnswerInput'
+import CroppedProblemImage from './CroppedProblemImage'
 
 interface Props {
   problem: Problem
   onUpdate: (updates: Partial<Pick<Problem, 'question_text' | 'answer_type' | 'correct_answer' | 'options'>>) => void | Promise<void>
   onDelete: () => void
+  userId?: string
+  problemSetId?: string
 }
 
-export default function ProblemCard({ problem, onUpdate, onDelete }: Props) {
+export default function ProblemCard({ problem, onUpdate, onDelete, userId, problemSetId }: Props) {
   const [questionText, setQuestionText] = useState(problem.question_text ?? '')
   const [options, setOptions] = useState<string[]>(
     problem.options ?? ['①', '②', '③', '④', '⑤']
@@ -125,6 +128,16 @@ export default function ProblemCard({ problem, onUpdate, onDelete }: Props) {
           ✕
         </button>
       </div>
+
+      {/* Cropped problem region from source page */}
+      {userId && problemSetId && problem.crop_rect && problem.source_page && (
+        <CroppedProblemImage
+          userId={userId}
+          problemSetId={problemSetId}
+          sourcePage={problem.source_page}
+          cropRect={problem.crop_rect}
+        />
+      )}
 
       {/* Page image */}
       {problem.image_url && (

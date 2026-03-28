@@ -4,6 +4,7 @@ import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 import { useSubjects } from '@/hooks/useSubjects'
 import { useProblemSets } from '@/hooks/useProblemSets'
+import { useApiKeyStatus } from '@/hooks/useApiKeyStatus'
 import type { Attempt, ProblemSet, Subject } from '@/types/index'
 
 const statusLabel = (status: ProblemSet['status']) => {
@@ -43,6 +44,7 @@ export default function DashboardPage() {
 
   const loading = subjectsLoading || psLoading || attemptsLoading
 
+  const hasApiKey = useApiKeyStatus()
   const username = user?.email?.split('@')[0] ?? '학생'
 
   const totalAttempts = attempts.length
@@ -91,6 +93,25 @@ export default function DashboardPage() {
           안녕하세요, {username}님!
         </h1>
       </div>
+
+      {/* API key warning banner */}
+      {hasApiKey === false && (
+        <div
+          onClick={() => navigate('/settings')}
+          style={{
+            background: '#fffbeb', borderBottom: '1px solid #fcd34d',
+            padding: '12px 20px', display: 'flex', alignItems: 'center', gap: 10,
+            cursor: 'pointer',
+          }}
+        >
+          <span style={{ fontSize: 20 }}>⚠️</span>
+          <div style={{ flex: 1 }}>
+            <span style={{ fontSize: 14, fontWeight: 600, color: '#92400e' }}>AI API 키를 등록해주세요</span>
+            <span style={{ fontSize: 13, color: '#b45309', marginLeft: 6 }}>문제 추출 기능을 사용하려면 필요해요</span>
+          </div>
+          <span style={{ fontSize: 13, color: '#b45309', fontWeight: 600 }}>등록하기 →</span>
+        </div>
+      )}
 
       <div style={{ padding: '20px 16px', display: 'flex', flexDirection: 'column', gap: 24 }}>
         {/* Summary stats */}
@@ -145,7 +166,7 @@ export default function DashboardPage() {
               {subjectStats.map(({ subject, psCount }) => (
                 <button
                   key={subject.id}
-                  onClick={() => navigate('/upload')}
+                  onClick={() => navigate(`/subject/${subject.id}`)}
                   style={{
                     background: '#fff',
                     borderRadius: 12,

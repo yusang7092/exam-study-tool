@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '@/hooks/useAuth'
 import { useSubjects } from '@/hooks/useSubjects'
@@ -6,7 +6,104 @@ import { supabase } from '@/lib/supabase'
 
 type Provider = 'gemini' | 'claude'
 
-const PRESET_COLORS = ['#6366f1', '#f59e0b', '#10b981', '#ef4444', '#3b82f6', '#8b5cf6']
+const PRESET_COLORS = [
+  // Reds / Pinks
+  '#ef4444', '#f97316', '#ec4899', '#f43f5e',
+  // Yellows / Greens
+  '#f59e0b', '#eab308', '#84cc16', '#22c55e',
+  // Teals / Blues
+  '#10b981', '#14b8a6', '#06b6d4', '#0ea5e9',
+  // Purples / Indigos
+  '#3b82f6', '#6366f1', '#8b5cf6', '#a855f7',
+  // Neutrals
+  '#64748b', '#374151',
+]
+
+function hslToHex(h: number, s: number, l: number): string {
+  s /= 100; l /= 100
+  const a = s * Math.min(l, 1 - l)
+  const f = (n: number) => {
+    const k = (n + h / 30) % 12
+    const c = l - a * Math.max(Math.min(k - 3, 9 - k, 1), -1)
+    return Math.round(255 * c).toString(16).padStart(2, '0')
+  }
+  return `#${f(0)}${f(8)}${f(4)}`
+}
+
+function SpectrumPicker({ onSelect, onClose }: { value: string; onSelect: (c: string) => void; onClose: () => void }) {
+  const [hue, setHue] = useState(210)
+  const [lightness, setLightness] = useState(55)
+  const pickerRef = useRef<HTMLDivElement>(null)
+  const preview = hslToHex(hue, 75, lightness)
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (pickerRef.current && !pickerRef.current.contains(e.target as Node)) onClose()
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [onClose])
+
+  return (
+    <div
+      ref={pickerRef}
+      style={{
+        position: 'absolute', zIndex: 300, top: 'calc(100% + 8px)', left: 0, right: 0,
+        background: '#fff', borderRadius: 14,
+        boxShadow: '0 8px 32px rgba(0,0,0,0.18)', padding: '16px',
+        border: '1px solid #e5e7eb',
+      }}
+    >
+      <div style={{ fontSize: 12, fontWeight: 600, color: '#6b7280', marginBottom: 10 }}>색상 스펙트럼</div>
+
+      {/* Hue rainbow slider */}
+      <div style={{ marginBottom: 12 }}>
+        <div style={{ fontSize: 11, color: '#9ca3af', marginBottom: 6 }}>색조</div>
+        <input
+          type="range" min={0} max={359} value={hue}
+          onChange={e => setHue(Number(e.target.value))}
+          style={{
+            width: '100%', height: 20, borderRadius: 10, cursor: 'pointer',
+            appearance: 'none', outline: 'none', border: 'none',
+            background: 'linear-gradient(to right, hsl(0,75%,55%), hsl(30,75%,55%), hsl(60,75%,55%), hsl(90,75%,55%), hsl(120,75%,55%), hsl(150,75%,55%), hsl(180,75%,55%), hsl(210,75%,55%), hsl(240,75%,55%), hsl(270,75%,55%), hsl(300,75%,55%), hsl(330,75%,55%), hsl(360,75%,55%))',
+          }}
+        />
+      </div>
+
+      {/* Lightness slider */}
+      <div style={{ marginBottom: 16 }}>
+        <div style={{ fontSize: 11, color: '#9ca3af', marginBottom: 6 }}>밝기</div>
+        <input
+          type="range" min={25} max={75} value={lightness}
+          onChange={e => setLightness(Number(e.target.value))}
+          style={{
+            width: '100%', height: 20, borderRadius: 10, cursor: 'pointer',
+            appearance: 'none', outline: 'none', border: 'none',
+            background: `linear-gradient(to right, hsl(${hue},75%,25%), hsl(${hue},75%,50%), hsl(${hue},75%,75%))`,
+          }}
+        />
+      </div>
+
+      {/* Preview + confirm */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <div style={{
+          width: 40, height: 40, borderRadius: 10,
+          background: preview, border: '2px solid #e5e7eb', flexShrink: 0,
+        }} />
+        <div style={{ flex: 1, fontSize: 13, color: '#374151', fontFamily: 'monospace' }}>{preview}</div>
+        <button
+          onClick={() => { onSelect(preview); onClose() }}
+          style={{
+            padding: '8px 16px', background: preview, color: '#fff',
+            border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer',
+          }}
+        >
+          선택
+        </button>
+      </div>
+    </div>
+  )
+}
 
 // ─── Shared style tokens ──────────────────────────────────────────────────────
 const card: React.CSSProperties = {
@@ -78,6 +175,116 @@ const btnOutline: React.CSSProperties = {
   fontFamily: 'inherit',
 }
 
+// ─── API Key Guide Modal ──────────────────────────────────────────────────────
+function ApiKeyGuideModal({ provider, onClose }: { provider: Provider; onClose: () => void }) {
+  const isGemini = provider === 'gemini'
+
+  const steps = isGemini
+    ? [
+        { icon: '🌐', text: '아래 링크를 눌러 Google AI Studio에 접속하세요.' },
+        { icon: '🔑', text: '"Create API key" 버튼을 클릭하세요.' },
+        { icon: '📋', text: '생성된 키를 복사하세요 (한 번만 표시됩니다!).' },
+        { icon: '💾', text: '이 페이지로 돌아와 붙여넣기 후 저장하세요.' },
+      ]
+    : [
+        { icon: '🌐', text: '아래 링크를 눌러 Anthropic Console에 접속하세요.' },
+        { icon: '👤', text: '회원가입 또는 로그인 후 Settings로 이동하세요.' },
+        { icon: '🔑', text: '"API Keys" 탭에서 "Create Key" 버튼을 클릭하세요.' },
+        { icon: '📋', text: '생성된 키를 복사하세요 (한 번만 표시됩니다!).' },
+        { icon: '💾', text: '이 페이지로 돌아와 붙여넣기 후 저장하세요.' },
+      ]
+
+  const link = isGemini
+    ? 'https://aistudio.google.com/app/apikey'
+    : 'https://console.anthropic.com/settings/keys'
+
+  const freeNote = isGemini
+    ? '✅ Gemini는 무료 티어 제공 (월 1500회 요청 무료)'
+    : '💳 Claude는 유료 플랜 필요 (소액 충전 후 사용 가능)'
+
+  return (
+    <div
+      onClick={onClose}
+      style={{
+        position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        zIndex: 1000, padding: 20,
+      }}
+    >
+      <div
+        onClick={e => e.stopPropagation()}
+        style={{
+          background: '#fff', borderRadius: 20, padding: '28px 24px',
+          maxWidth: 420, width: '100%', boxShadow: '0 20px 60px rgba(0,0,0,0.2)',
+        }}
+      >
+        {/* Header */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+          <h3 style={{ margin: 0, fontSize: 17, fontWeight: 700, color: '#1f2937' }}>
+            {isGemini ? '🤖 Gemini' : '🧠 Claude'} API 키 발급 방법
+          </h3>
+          <button
+            onClick={onClose}
+            style={{
+              background: 'none', border: 'none', fontSize: 20, cursor: 'pointer',
+              color: '#9ca3af', padding: '0 4px', lineHeight: 1,
+            }}
+          >
+            ✕
+          </button>
+        </div>
+
+        {/* Free note */}
+        <div style={{
+          background: isGemini ? '#f0fdf4' : '#fef9ec',
+          border: `1px solid ${isGemini ? '#86efac' : '#fcd34d'}`,
+          borderRadius: 10, padding: '10px 14px', marginBottom: 20,
+          fontSize: 13, color: '#374151',
+        }}>
+          {freeNote}
+        </div>
+
+        {/* Steps */}
+        <ol style={{ margin: '0 0 24px', padding: 0, listStyle: 'none' }}>
+          {steps.map((step, i) => (
+            <li key={i} style={{ display: 'flex', gap: 12, marginBottom: 14, alignItems: 'flex-start' }}>
+              <span style={{
+                minWidth: 28, height: 28, borderRadius: '50%',
+                background: '#6366f1', color: '#fff',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: 13, fontWeight: 700, flexShrink: 0,
+              }}>
+                {i + 1}
+              </span>
+              <span style={{ fontSize: 14, color: '#374151', lineHeight: 1.6, paddingTop: 4 }}>
+                {step.icon} {step.text}
+              </span>
+            </li>
+          ))}
+        </ol>
+
+        {/* Link button */}
+        <a
+          href={link}
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{
+            display: 'block', textAlign: 'center',
+            padding: '12px 20px', background: '#6366f1', color: '#fff',
+            borderRadius: 10, fontSize: 14, fontWeight: 600,
+            textDecoration: 'none', marginBottom: 10,
+          }}
+        >
+          {isGemini ? 'Google AI Studio 바로가기 →' : 'Anthropic Console 바로가기 →'}
+        </a>
+        <p style={{ fontSize: 12, color: '#9ca3af', textAlign: 'center', margin: 0 }}>
+          새 탭에서 열립니다
+        </p>
+      </div>
+    </div>
+  )
+}
+
 // ─── Section 1: API Key ───────────────────────────────────────────────────────
 function ApiKeySection({ userId }: { userId: string }) {
   const [provider, setProvider] = useState<Provider>('gemini')
@@ -85,6 +292,7 @@ function ApiKeySection({ userId }: { userId: string }) {
   const [saving, setSaving] = useState(false)
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; msg: string } | null>(null)
   const [loadingSettings, setLoadingSettings] = useState(true)
+  const [showGuide, setShowGuide] = useState(false)
 
   useEffect(() => {
     const fetch = async () => {
@@ -156,6 +364,8 @@ function ApiKeySection({ userId }: { userId: string }) {
   }
 
   return (
+    <>
+    {showGuide && <ApiKeyGuideModal provider={provider} onClose={() => setShowGuide(false)} />}
     <div style={card}>
       <h2 style={sectionTitle}>AI API 키 설정</h2>
 
@@ -192,9 +402,22 @@ function ApiKeySection({ userId }: { userId: string }) {
 
       {/* API key input */}
       <div style={{ marginBottom: 20 }}>
-        <label style={labelStyle}>
-          {provider === 'gemini' ? 'Gemini' : 'Claude'} API 키
-        </label>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+          <label style={{ ...labelStyle, marginBottom: 0 }}>
+            {provider === 'gemini' ? 'Gemini' : 'Claude'} API 키
+          </label>
+          <button
+            type="button"
+            onClick={() => setShowGuide(true)}
+            style={{
+              background: 'none', border: '1px solid #d1d5db', borderRadius: 6,
+              padding: '3px 10px', fontSize: 12, color: '#6366f1', cursor: 'pointer',
+              fontFamily: 'inherit', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4,
+            }}
+          >
+            <span>?</span> 키 발급 방법
+          </button>
+        </div>
         <input
           type="password"
           value={apiKey}
@@ -231,6 +454,7 @@ function ApiKeySection({ userId }: { userId: string }) {
         {saving ? '저장 중...' : '저장'}
       </button>
     </div>
+    </>
   )
 }
 
@@ -240,6 +464,7 @@ function SubjectsSection() {
   const [showAddForm, setShowAddForm] = useState(false)
   const [newName, setNewName] = useState('')
   const [newColor, setNewColor] = useState(PRESET_COLORS[0])
+  const [showSpectrum, setShowSpectrum] = useState(false)
   const [addError, setAddError] = useState<string | null>(null)
   const [deleteError, setDeleteError] = useState<string | null>(null)
   const [adding, setAdding] = useState(false)
@@ -364,26 +589,53 @@ function SubjectsSection() {
 
           <div style={{ marginBottom: 14 }}>
             <label style={labelStyle}>색상</label>
-            <div style={{ display: 'flex', gap: 8 }}>
-              {PRESET_COLORS.map(color => (
+            <div style={{ position: 'relative' }}>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
+                {PRESET_COLORS.map(color => (
+                  <button
+                    key={color}
+                    type="button"
+                    onClick={() => { setNewColor(color); setShowSpectrum(false) }}
+                    style={{
+                      width: 28, height: 28, borderRadius: '50%',
+                      background: color,
+                      border: newColor === color ? '3px solid #1f2937' : '3px solid transparent',
+                      cursor: 'pointer', padding: 0, outline: 'none',
+                      boxShadow: newColor === color ? '0 0 0 1px #fff inset' : 'none',
+                      transition: 'border-color 0.1s, transform 0.1s',
+                      transform: newColor === color ? 'scale(1.15)' : 'scale(1)',
+                    }}
+                    title={color}
+                  />
+                ))}
+
+                {/* + spectrum button */}
                 <button
-                  key={color}
                   type="button"
-                  onClick={() => setNewColor(color)}
+                  onClick={() => setShowSpectrum(s => !s)}
                   style={{
-                    width: 28,
-                    height: 28,
-                    borderRadius: '50%',
-                    background: color,
-                    border: newColor === color ? '3px solid #1f2937' : '3px solid transparent',
-                    cursor: 'pointer',
-                    padding: 0,
-                    outline: 'none',
-                    transition: 'border-color 0.1s',
+                    width: 28, height: 28, borderRadius: '50%',
+                    background: showSpectrum ? newColor : 'conic-gradient(hsl(0,75%,55%), hsl(60,75%,55%), hsl(120,75%,55%), hsl(180,75%,55%), hsl(240,75%,55%), hsl(300,75%,55%), hsl(360,75%,55%))',
+                    border: showSpectrum ? '3px solid #1f2937' : '2px solid #d1d5db',
+                    cursor: 'pointer', padding: 0, outline: 'none',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: 14, fontWeight: 700, color: '#fff',
+                    textShadow: '0 0 3px rgba(0,0,0,0.4)',
+                    flexShrink: 0,
                   }}
-                  title={color}
+                  title="직접 색상 선택"
+                >
+                  {showSpectrum ? '' : '+'}
+                </button>
+              </div>
+
+              {showSpectrum && (
+                <SpectrumPicker
+                  value={newColor}
+                  onSelect={c => setNewColor(c)}
+                  onClose={() => setShowSpectrum(false)}
                 />
-              ))}
+              )}
             </div>
           </div>
 
