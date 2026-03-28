@@ -678,7 +678,85 @@ function SubjectsSection() {
   )
 }
 
-// ─── Section 3: Account ───────────────────────────────────────────────────────
+// ─── Section 3: Feedback ─────────────────────────────────────────────────────
+function FeedbackSection({ userId, userEmail }: { userId: string; userEmail: string }) {
+  const [message, setMessage] = useState('')
+  const [sending, setSending] = useState(false)
+  const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; msg: string } | null>(null)
+
+  const handleSend = async () => {
+    if (!message.trim()) {
+      setFeedback({ type: 'error', msg: '내용을 입력해주세요.' })
+      return
+    }
+    setSending(true)
+    setFeedback(null)
+    const { error } = await supabase.from('feedback').insert({
+      user_id: userId,
+      user_email: userEmail,
+      message: message.trim(),
+    })
+    setSending(false)
+    if (error) {
+      setFeedback({ type: 'error', msg: '전송 실패: ' + error.message })
+    } else {
+      setFeedback({ type: 'success', msg: '피드백이 전송되었습니다. 감사합니다!' })
+      setMessage('')
+    }
+  }
+
+  return (
+    <div style={card}>
+      <h2 style={sectionTitle}>문의 / 불편사항 제보</h2>
+      <p style={{ fontSize: 13, color: '#6b7280', marginTop: 0, marginBottom: 16, lineHeight: 1.6 }}>
+        불편한 점이나 개선 요청을 자유롭게 적어주세요.
+      </p>
+
+      <div style={{ marginBottom: 16 }}>
+        <label style={labelStyle}>내용</label>
+        <textarea
+          value={message}
+          onChange={e => setMessage(e.target.value)}
+          placeholder="예: 업로드 중 오류가 발생합니다. / 이런 기능이 있으면 좋겠어요."
+          rows={4}
+          style={{
+            ...inputStyle,
+            resize: 'vertical',
+            lineHeight: 1.6,
+          }}
+          onFocus={e => (e.currentTarget.style.borderColor = '#6366f1')}
+          onBlur={e => (e.currentTarget.style.borderColor = '#d1d5db')}
+        />
+      </div>
+
+      {feedback && (
+        <div
+          style={{
+            padding: '10px 12px',
+            borderRadius: 8,
+            fontSize: 13,
+            marginBottom: 16,
+            background: feedback.type === 'success' ? '#f0fdf4' : '#fef2f2',
+            border: `1px solid ${feedback.type === 'success' ? '#86efac' : '#fca5a5'}`,
+            color: feedback.type === 'success' ? '#166534' : '#dc2626',
+          }}
+        >
+          {feedback.msg}
+        </div>
+      )}
+
+      <button
+        onClick={() => void handleSend()}
+        disabled={sending}
+        style={{ ...btnPrimary, opacity: sending ? 0.7 : 1, cursor: sending ? 'not-allowed' : 'pointer' }}
+      >
+        {sending ? '전송 중...' : '전송'}
+      </button>
+    </div>
+  )
+}
+
+// ─── Section 4: Account ───────────────────────────────────────────────────────
 function AccountSection() {
   const navigate = useNavigate()
   const [loggingOut, setLoggingOut] = useState(false)
@@ -739,6 +817,11 @@ export default function SettingsPage() {
         <div style={{ height: 1, background: '#e5e7eb', margin: '0 0 24px' }} />
 
         <SubjectsSection />
+
+        {/* Divider */}
+        <div style={{ height: 1, background: '#e5e7eb', margin: '0 0 24px' }} />
+
+        <FeedbackSection userId={user.id} userEmail={user.email ?? ''} />
 
         {/* Divider */}
         <div style={{ height: 1, background: '#e5e7eb', margin: '0 0 24px' }} />
