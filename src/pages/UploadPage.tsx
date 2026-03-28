@@ -102,6 +102,12 @@ export default function UploadPage() {
       await updateProblemSetStatus(ps.id, 'extracting')
       setStep(2)
 
+      // Prevent screen sleep during long extraction
+      let wakeLock: WakeLockSentinel | null = null
+      try {
+        if ('wakeLock' in navigator) wakeLock = await navigator.wakeLock.request('screen')
+      } catch { /* not supported on this device */ }
+
       // Fetch user's Gemini API key
       const { data: settings } = await supabase
         .from('user_settings')
@@ -177,6 +183,8 @@ export default function UploadPage() {
         localStorage.setItem('__ai_debug_raw', JSON.stringify(allDebugRaw))
       }
 
+      wakeLock?.release().catch(() => {})
+
       // Step 3: Done
       await updateProblemSetStatus(ps.id, 'reviewing')
       setStep(3)
@@ -203,6 +211,7 @@ export default function UploadPage() {
       }
     } finally {
       setIsUploading(false)
+      setProgressText('')
     }
   }
 
