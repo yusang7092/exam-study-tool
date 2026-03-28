@@ -1,5 +1,30 @@
 import { supabase } from '@/lib/supabase'
 
+/** Resize an image Blob so its longest side ≤ maxDim, output as JPEG at given quality */
+export async function resizeImageBlob(blob: Blob, maxDim = 1600, quality = 0.85): Promise<Blob> {
+  return new Promise((resolve, reject) => {
+    const img = new Image()
+    const url = URL.createObjectURL(blob)
+    img.onload = () => {
+      URL.revokeObjectURL(url)
+      const { naturalWidth: w, naturalHeight: h } = img
+      const scale = Math.min(1, maxDim / Math.max(w, h))
+      const canvas = document.createElement('canvas')
+      canvas.width = Math.round(w * scale)
+      canvas.height = Math.round(h * scale)
+      const ctx = canvas.getContext('2d')!
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
+      canvas.toBlob(
+        b => b ? resolve(b) : reject(new Error('resizeImageBlob failed')),
+        'image/jpeg',
+        quality
+      )
+    }
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('Image load failed')) }
+    img.src = url
+  })
+}
+
 export async function uploadPageImages(
   userId: string,
   problemSetId: string,
@@ -7,10 +32,13 @@ export async function uploadPageImages(
 ): Promise<string[]> {
   const paths: string[] = []
   for (let i = 0; i < pageBlobs.length; i++) {
+    const blob = pageBlobs[i]
+    const mimeType = blob.type || 'image/jpeg'
+    const ext = mimeType === 'image/png' ? 'png' : mimeType === 'image/webp' ? 'webp' : 'jpg'
     const paddedNum = String(i + 1).padStart(3, '0')
-    const path = `${userId}/${problemSetId}/page-${paddedNum}.jpg`
-    const { error } = await supabase.storage.from('page-images').upload(path, pageBlobs[i], {
-      contentType: 'image/jpeg',
+    const path = `${userId}/${problemSetId}/page-${paddedNum}.${ext}`
+    const { error } = await supabase.storage.from('page-images').upload(path, blob, {
+      contentType: mimeType,
       upsert: false,
     })
     if (error) throw new Error(`Failed to upload page ${i + 1}: ${error.message}`)

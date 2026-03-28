@@ -20,6 +20,18 @@ export async function pdfToImages(file: File): Promise<Blob[]> {
       const ctx = canvas.getContext('2d')!
       await page.render({ canvas, canvasContext: ctx, viewport }).promise
       page.cleanup()
+
+      // Enhance contrast for better AI OCR accuracy
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height)
+      const d = imageData.data
+      for (let i = 0; i < d.length; i += 4) {
+        // Contrast enhancement: factor 1.2, brightness slight boost
+        d[i]   = Math.min(255, Math.max(0, (d[i]   - 128) * 1.2 + 128 + 5))
+        d[i+1] = Math.min(255, Math.max(0, (d[i+1] - 128) * 1.2 + 128 + 5))
+        d[i+2] = Math.min(255, Math.max(0, (d[i+2] - 128) * 1.2 + 128 + 5))
+      }
+      ctx.putImageData(imageData, 0, 0)
+
       const blob = await new Promise<Blob>((resolve, reject) => {
         canvas.toBlob(b => b ? resolve(b) : reject(new Error('Canvas toBlob failed')), 'image/jpeg', 0.85)
       })

@@ -1,10 +1,12 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '@/hooks/useAuth'
 import { useSubjects } from '@/hooks/useSubjects'
 import { useProblemSets } from '@/hooks/useProblemSets'
+import { useApiKeyStatus } from '@/hooks/useApiKeyStatus'
 import { pdfToImages } from '@/lib/pdfToImages'
 import { uploadPageImages, uploadSourceFile } from '@/lib/uploadHelpers'
+import { extractProblemsFromBlob } from '@/lib/extractProblems'
 import { supabase } from '@/lib/supabase'
 import FileDropZone from '@/components/upload/FileDropZone'
 import SubjectSelector from '@/components/upload/SubjectSelector'
@@ -18,10 +20,24 @@ export default function UploadPage() {
   const { subjects } = useSubjects()
   const { createProblemSet, updateProblemSetStatus } = useProblemSets()
 
+  const hasApiKey = useApiKeyStatus()
+  const [showApiKeyPopup, setShowApiKeyPopup] = useState(false)
+
+  const [persistedError, setPersistedError] = useState<string | null>(null)
+
+  useEffect(() => {
+    const e = localStorage.getItem('__upload_error')
+    if (e) {
+      localStorage.removeItem('__upload_error')
+      setPersistedError(e)
+    }
+  }, [])
+
   const [file, setFile] = useState<File | null>(null)
   const [subjectId, setSubjectId] = useState<string | null>(null)
   const [title, setTitle] = useState('')
   const [isUploading, setIsUploading] = useState(false)
+  const [uploadAttempted, setUploadAttempted] = useState(false)
   const [step, setStep] = useState<UploadStep>(1)
   const [error, setError] = useState<string | null>(null)
   const [problemSetId, setProblemSetId] = useState<string | null>(null)
@@ -33,12 +49,19 @@ export default function UploadPage() {
   const handleSubmit = async () => {
     if (!file || !user) return
 
+    if (hasApiKey === false) {
+      setShowApiKeyPopup(true)
+      setTimeout(() => setShowApiKeyPopup(false), 4000)
+      return
+    }
+
     if (!subjectId) {
       setError('과목을 선택해주세요.')
       return
     }
 
     setIsUploading(true)
+    setUploadAttempted(true)
     setError(null)
     setStep(1)
 
@@ -57,33 +80,81 @@ export default function UploadPage() {
       psId = ps.id
       setProblemSetId(ps.id)
 
-      let pageImagePaths: string[] = []
+      let pageBlobs: Blob[] = []
 
-      if (isPDF) {
-        const blobs = await pdfToImages(file)
-        pageImagePaths = await uploadPageImages(user.id, ps.id, blobs)
-      } else if (isImage) {
-        pageImagePaths = await uploadPageImages(user.id, ps.id, [file])
+      try {
+        if (isPDF) {
+          pageBlobs = await pdfToImages(file)
+          if (!pageBlobs.length) throw new Error('PDF에서 이미지를 추출하지 못했습니다.')
+          await uploadPageImages(user.id, ps.id, pageBlobs)
+        } else if (isImage) {
+          pageBlobs = [file]
+          await uploadPageImages(user.id, ps.id, pageBlobs)
+        }
+        await uploadSourceFile(user.id, ps.id, file)
+      } catch (uploadErr) {
+        const detail = uploadErr instanceof Error && uploadErr.message ? uploadErr.message : '파일 업로드 실패'
+        throw new Error(`파일 업로드 오류: ${detail}`)
       }
 
-      await uploadSourceFile(user.id, ps.id, file)
-
-      // Step 2: AI extraction
+      // Step 2: AI extraction — runs in browser (no Edge Function compute limits)
       await updateProblemSetStatus(ps.id, 'extracting')
       setStep(2)
 
-      let extractionFailed = false
-      try {
-        const { error: fnError } = await supabase.functions.invoke('extract-problems', {
-          body: { problem_set_id: ps.id, page_image_paths: pageImagePaths },
-        })
-        if (fnError) {
-          console.warn('Edge function error (non-blocking):', fnError)
-          extractionFailed = true
+      // Fetch user's Gemini API key
+      const { data: settings } = await supabase
+        .from('user_settings')
+        .select('gemini_api_key')
+        .eq('id', user.id)
+        .single()
+      const geminiKey = settings?.gemini_api_key
+      if (!geminiKey) throw new Error('Gemini API 키가 설정되지 않았습니다. 설정 페이지에서 등록해주세요.')
+
+      // Use the blobs already in memory from Step 1 (no re-render needed)
+      const blobsForExtraction: Blob[] = pageBlobs
+
+      const allDebugRaw: string[] = []
+      let globalSeq = 1
+      let problemCount = 0
+
+      for (let i = 0; i < blobsForExtraction.length; i++) {
+        const blob = blobsForExtraction[i]
+        let result: { problems: import('@/lib/extractProblems').ExtractedProblem[]; rawText: string }
+        try {
+          result = await extractProblemsFromBlob(geminiKey, blob)
+        } catch (e) {
+          allDebugRaw.push(`page ${i + 1} error: ${e instanceof Error ? e.message : String(e)}`)
+          continue
         }
-      } catch (fnEx) {
-        console.warn('Edge function not available (non-blocking):', fnEx)
-        extractionFailed = true
+
+        allDebugRaw.push(result.rawText.slice(0, 500))
+
+        if (result.problems.length === 0) continue
+
+        const rows = result.problems.map(p => ({
+          problem_set_id: ps.id,
+          user_id: user.id,
+          subject_id: subjectId!,
+          sequence_num: globalSeq++,
+          question_text: p.question_text,
+          answer_type: p.answer_type,
+          options: p.answer_type === 'mcq' ? (p.options ?? null) : null,
+          correct_answer: null,
+          image_url: null,
+          crop_rect: (p.bbox_y_min != null && p.bbox_x_min != null && p.bbox_y_max != null && p.bbox_x_max != null)
+            ? { x: p.bbox_x_min / 1000, y: p.bbox_y_min / 1000, w: (p.bbox_x_max - p.bbox_x_min) / 1000, h: (p.bbox_y_max - p.bbox_y_min) / 1000 }
+            : null,
+          source_page: i + 1,
+          explanation: null,
+        }))
+
+        const { error: insertErr } = await supabase.from('problems').insert(rows)
+        if (insertErr) throw new Error(`문제 저장 실패: ${insertErr.message}`)
+        problemCount += rows.length
+      }
+
+      if (problemCount === 0) {
+        localStorage.setItem('__ai_debug_raw', JSON.stringify(allDebugRaw))
       }
 
       // Step 3: Done
@@ -94,11 +165,13 @@ export default function UploadPage() {
       await new Promise((r) => setTimeout(r, 800))
 
       navigate(
-        `/review-extraction?setId=${ps.id}${extractionFailed ? '&note=extraction_pending' : ''}`
+        `/review-extraction?setId=${ps.id}${problemCount === 0 ? '&note=no_problems' : ''}`
       )
     } catch (err) {
-      const msg = err instanceof Error ? err.message : '알 수 없는 오류가 발생했습니다.'
+      const raw = err instanceof Error ? err.message : ''
+      const msg = raw || '알 수 없는 오류가 발생했습니다.'
       setError(msg)
+      localStorage.setItem('__upload_error', msg)
 
       // Attempt to mark failed problem_set
       if (psId) {
@@ -121,9 +194,10 @@ export default function UploadPage() {
     setStep(1)
     setError(null)
     setIsUploading(false)
+    setUploadAttempted(false)
   }
 
-  if (isUploading || step === 3) {
+  if (isUploading || uploadAttempted) {
     return (
       <div
         style={{
@@ -199,6 +273,28 @@ export default function UploadPage() {
       <p style={{ color: '#6B7280', fontSize: 14, marginBottom: 28 }}>
         시험지 PDF 또는 이미지를 업로드하면 AI가 문제를 자동으로 추출합니다.
       </p>
+
+      {/* Persisted error from previous attempt */}
+      {persistedError && !error && (
+        <div style={{
+          marginBottom: 20, padding: '14px 16px',
+          background: '#FEF2F2', border: '1px solid #FECACA',
+          borderRadius: 10, color: '#DC2626', fontSize: 14,
+        }}>
+          <strong>이전 시도 오류:</strong> {persistedError}
+        </div>
+      )}
+
+      {/* Error display in form view */}
+      {error && (
+        <div style={{
+          marginBottom: 20, padding: '14px 16px',
+          background: '#FEF2F2', border: '1px solid #FECACA',
+          borderRadius: 10, color: '#DC2626', fontSize: 14,
+        }}>
+          <strong>오류 발생:</strong> {error}
+        </div>
+      )}
 
       {/* File drop zone */}
       <div style={{ marginBottom: 20 }}>
@@ -279,6 +375,39 @@ export default function UploadPage() {
         <p style={{ textAlign: 'center', color: '#9CA3AF', fontSize: 12, marginTop: 12 }}>
           제목을 입력해주세요
         </p>
+      )}
+
+      {/* API key missing bottom popup */}
+      {showApiKeyPopup && (
+        <div
+          style={{
+            position: 'fixed', bottom: 'calc(80px + env(safe-area-inset-bottom))',
+            left: '50%', transform: 'translateX(-50%)',
+            background: '#1f2937', color: '#fff',
+            borderRadius: 16, padding: '16px 20px',
+            width: 'calc(100% - 40px)', maxWidth: 480,
+            boxShadow: '0 8px 32px rgba(0,0,0,0.25)',
+            display: 'flex', alignItems: 'center', gap: 12,
+            zIndex: 999,
+            animation: 'slideUp 0.25s ease',
+          }}
+        >
+          <span style={{ fontSize: 24, flexShrink: 0 }}>🔑</span>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 2 }}>AI API 키가 필요해요</div>
+            <div style={{ fontSize: 13, color: '#d1d5db' }}>문제 추출을 위해 먼저 API 키를 등록해주세요</div>
+          </div>
+          <button
+            onClick={() => navigate('/settings')}
+            style={{
+              background: '#6366f1', color: '#fff', border: 'none',
+              borderRadius: 8, padding: '8px 14px', fontSize: 13,
+              fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0,
+            }}
+          >
+            등록하기
+          </button>
+        </div>
       )}
     </div>
   )
