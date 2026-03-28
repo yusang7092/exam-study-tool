@@ -91,10 +91,57 @@ alter table public.attempts enable row level security;
 create policy "Users manage own attempts" on public.attempts
   for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 
--- Storage buckets (run these in Supabase dashboard or via CLI)
--- insert into storage.buckets (id, name, public) values ('problem-sources', 'problem-sources', false);
--- insert into storage.buckets (id, name, public) values ('page-images', 'page-images', false);
--- insert into storage.buckets (id, name, public) values ('answer-photos', 'answer-photos', false);
+-- Storage buckets and policies
+-- NOTE: Run these in the Supabase dashboard SQL editor or via CLI
+
+-- Uncomment and run to create buckets:
+-- insert into storage.buckets (id, name, public) values ('problem-sources', 'problem-sources', false) on conflict do nothing;
+-- insert into storage.buckets (id, name, public) values ('page-images', 'page-images', false) on conflict do nothing;
+-- insert into storage.buckets (id, name, public) values ('answer-photos', 'answer-photos', false) on conflict do nothing;
+
+-- Storage RLS policies (run after creating buckets):
+-- Users can upload to their own path in page-images
+create policy "Users upload own page-images"
+  on storage.objects for insert
+  with check (
+    bucket_id = 'page-images'
+    AND auth.uid()::text = (storage.foldername(name))[1]
+  );
+
+create policy "Users read own page-images"
+  on storage.objects for select
+  using (
+    bucket_id = 'page-images'
+    AND auth.uid()::text = (storage.foldername(name))[1]
+  );
+
+create policy "Users delete own page-images"
+  on storage.objects for delete
+  using (
+    bucket_id = 'page-images'
+    AND auth.uid()::text = (storage.foldername(name))[1]
+  );
+
+-- Repeat same policies for problem-sources and answer-photos
+create policy "Users upload own problem-sources"
+  on storage.objects for insert
+  with check (bucket_id = 'problem-sources' AND auth.uid()::text = (storage.foldername(name))[1]);
+
+create policy "Users read own problem-sources"
+  on storage.objects for select
+  using (bucket_id = 'problem-sources' AND auth.uid()::text = (storage.foldername(name))[1]);
+
+create policy "Users upload own answer-photos"
+  on storage.objects for insert
+  with check (bucket_id = 'answer-photos' AND auth.uid()::text = (storage.foldername(name))[1]);
+
+create policy "Users read own answer-photos"
+  on storage.objects for select
+  using (bucket_id = 'answer-photos' AND auth.uid()::text = (storage.foldername(name))[1]);
+
+create policy "Users delete own answer-photos"
+  on storage.objects for delete
+  using (bucket_id = 'answer-photos' AND auth.uid()::text = (storage.foldername(name))[1]);
 
 -- Migration: add problem_set_id to solve_sessions
 alter table public.solve_sessions

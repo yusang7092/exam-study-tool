@@ -75,7 +75,7 @@ export default function UploadPage() {
       let extractionFailed = false
       try {
         const { error: fnError } = await supabase.functions.invoke('extract-problems', {
-          body: { problem_set_id: ps.id, page_image_paths: pageImagePaths, user_id: user.id },
+          body: { problem_set_id: ps.id, page_image_paths: pageImagePaths },
         })
         if (fnError) {
           console.warn('Edge function error (non-blocking):', fnError)

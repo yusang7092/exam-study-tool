@@ -211,11 +211,12 @@ Deno.serve(async (req: Request) => {
 
     const apiKey = useAi === 'gemini' ? geminiKey! : claudeKey!
 
-    // Also fetch problem_set to get subject_id
+    // Also fetch problem_set to get subject_id (ownership check via user_id)
     const { data: problemSet, error: psError } = await adminClient
       .from('problem_sets')
-      .select('subject_id')
+      .select('subject_id, user_id')
       .eq('id', problem_set_id)
+      .eq('user_id', user.id)
       .single()
 
     if (psError || !problemSet) {

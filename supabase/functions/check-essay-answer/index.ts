@@ -73,7 +73,11 @@ async function gradeWithGemini(
   const json = await res.json()
   const text: string = json?.candidates?.[0]?.content?.parts?.[0]?.text ?? '{}'
   const cleaned = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
-  return JSON.parse(cleaned) as GradeResult
+  try {
+    return JSON.parse(cleaned) as GradeResult
+  } catch {
+    return { is_correct: false, score: 0, feedback: 'AI 채점 중 오류가 발생했습니다. 직접 확인해 주세요.' }
+  }
 }
 
 async function gradeWithClaude(
@@ -126,7 +130,11 @@ async function gradeWithClaude(
   const json = await res.json()
   const text: string = json?.content?.[0]?.text ?? '{}'
   const cleaned = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
-  return JSON.parse(cleaned) as GradeResult
+  try {
+    return JSON.parse(cleaned) as GradeResult
+  } catch {
+    return { is_correct: false, score: 0, feedback: 'AI 채점 중 오류가 발생했습니다. 직접 확인해 주세요.' }
+  }
 }
 
 Deno.serve(async (req: Request) => {
@@ -258,7 +266,7 @@ Deno.serve(async (req: Request) => {
       result = await gradeWithClaude(apiKey, rubric, user_answer, imageBase64, imageMimeType, essayImageBase64, essayImageMimeType)
     }
 
-    // Update attempt row
+    // Update attempt row (ownership check via user_id)
     await adminClient
       .from('attempts')
       .update({
@@ -266,6 +274,7 @@ Deno.serve(async (req: Request) => {
         ai_feedback: result.feedback,
       })
       .eq('id', attempt_id)
+      .eq('user_id', user.id)
 
     return new Response(
       JSON.stringify({ is_correct: result.is_correct, score: result.score, feedback: result.feedback }),

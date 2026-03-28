@@ -17,7 +17,8 @@ export async function pdfToImages(file: File): Promise<Blob[]> {
       const canvas = document.createElement('canvas')
       canvas.width = viewport.width
       canvas.height = viewport.height
-      await page.render({ canvas, viewport }).promise
+      const ctx = canvas.getContext('2d')!
+      await page.render({ canvas, canvasContext: ctx, viewport }).promise
       page.cleanup()
       const blob = await new Promise<Blob>((resolve, reject) => {
         canvas.toBlob(b => b ? resolve(b) : reject(new Error('Canvas toBlob failed')), 'image/jpeg', 0.85)

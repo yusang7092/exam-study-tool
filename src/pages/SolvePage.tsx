@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { supabase } from '@/lib/supabase'
+import { useAuth } from '@/hooks/useAuth'
 import { useSolveSession } from '@/hooks/useSolveSession'
 import { useAttempts } from '@/hooks/useAttempts'
 import { checkMCQ, checkShortAnswer } from '@/lib/answerChecker'
@@ -14,6 +15,7 @@ import AnswerFeedback from '@/components/solve/AnswerFeedback'
 export default function SolvePage() {
   const { sessionId } = useParams<{ sessionId: string }>()
   const navigate = useNavigate()
+  const { session: authSession } = useAuth()
 
   const [answer, setAnswer] = useState('')
   const [essayPhoto, setEssayPhoto] = useState<Blob | null>(null)
@@ -105,8 +107,11 @@ export default function SolvePage() {
       setSubmitted(true)
 
       try {
-        const { data: { session: authSession } } = await supabase.auth.getSession()
         const token = authSession?.access_token
+        if (!authSession) {
+          setSubmitting(false)
+          return
+        }
 
         let finalAnswer = answer.trim()
         let essayImagePath: string | undefined

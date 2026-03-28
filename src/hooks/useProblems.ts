@@ -50,10 +50,12 @@ export function useProblems(problemSetId: string | null): UseProblemsReturn {
       id: string,
       updates: Partial<Pick<Problem, 'question_text' | 'answer_type' | 'correct_answer' | 'options'>>
     ): Promise<{ error: string | null }> => {
+      if (!user) return { error: 'Not authenticated' }
       const { error: updateError } = await supabase
         .from('problems')
         .update(updates)
         .eq('id', id)
+        .eq('user_id', user.id)
 
       if (updateError) {
         return { error: updateError.message }
@@ -64,7 +66,7 @@ export function useProblems(problemSetId: string | null): UseProblemsReturn {
       )
       return { error: null }
     },
-    []
+    [user]
   )
 
   const addProblem = useCallback(
@@ -101,15 +103,17 @@ export function useProblems(problemSetId: string | null): UseProblemsReturn {
   )
 
   const deleteProblem = useCallback(async (id: string) => {
+    if (!user) throw new Error('Not authenticated')
     const { error: deleteError } = await supabase
       .from('problems')
       .delete()
       .eq('id', id)
+      .eq('user_id', user.id)
 
     if (deleteError) throw new Error(deleteError.message)
 
     setProblems(prev => prev.filter(p => p.id !== id))
-  }, [])
+  }, [user])
 
   return {
     problems,
