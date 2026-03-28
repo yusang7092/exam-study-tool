@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '@/hooks/useAuth'
 import { useSubjects } from '@/hooks/useSubjects'
 import { supabase } from '@/lib/supabase'
+import { APP_VERSION } from '@/lib/version'
 
 type Provider = 'gemini' | 'claude'
 
@@ -726,7 +727,10 @@ export default function SettingsPage() {
   return (
     <div style={{ padding: '32px 16px' }}>
       <div style={{ maxWidth: 640, margin: '0 auto' }}>
-        <h1 style={{ margin: '0 0 28px', fontSize: 22, fontWeight: 700, color: '#1f2937' }}>설정</h1>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 28 }}>
+          <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700, color: '#1f2937' }}>설정</h1>
+          <span style={{ fontSize: 12, color: '#9ca3af', fontFamily: 'monospace' }}>v{APP_VERSION}</span>
+        </div>
 
         <ApiKeySection userId={user.id} />
 
