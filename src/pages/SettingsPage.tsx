@@ -184,7 +184,8 @@ function ApiKeyGuideModal({ provider, onClose }: { provider: Provider; onClose: 
     ? [
         { icon: '🌐', text: '아래 링크를 눌러 Google AI Studio에 접속하세요.' },
         { icon: '🔑', text: '"Create API key" 버튼을 클릭하세요.' },
-        { icon: '📋', text: '생성된 키를 복사하세요 (한 번만 표시됩니다!).' },
+        { icon: '📁', text: '프로젝트 선택 화면이 나오면 드롭다운에서 "새 프로젝트 만들기"를 클릭하세요. (처음 사용 시 또는 새 계정)' },
+        { icon: '📋', text: '생성된 키를 복사하세요.' },
         { icon: '💾', text: '이 페이지로 돌아와 붙여넣기 후 저장하세요.' },
       ]
     : [
@@ -200,7 +201,7 @@ function ApiKeyGuideModal({ provider, onClose }: { provider: Provider; onClose: 
     : 'https://console.anthropic.com/settings/keys'
 
   const freeNote = isGemini
-    ? '✅ Gemini는 무료 티어 제공 (월 1500회 요청 무료)'
+    ? '✅ Gemini는 무료 티어 제공 (하루 1500회, 분당 15회 무료)'
     : '💳 Claude는 유료 플랜 필요 (소액 충전 후 사용 가능)'
 
   return (
