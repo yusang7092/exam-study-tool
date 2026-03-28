@@ -1,6 +1,7 @@
 interface UploadProgressProps {
   step: 1 | 2 | 3
   error?: string
+  progressText?: string
 }
 
 interface StepInfo {
@@ -14,7 +15,7 @@ const STEPS: StepInfo[] = [
   { label: '완료!', icon: '✅' },
 ]
 
-export default function UploadProgress({ step, error }: UploadProgressProps) {
+export default function UploadProgress({ step, error, progressText }: UploadProgressProps) {
   return (
     <div style={{ padding: '24px 0' }}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
@@ -86,16 +87,8 @@ export default function UploadProgress({ step, error }: UploadProgressProps) {
                   {s.label}
                 </span>
                 {isActive && !error && (
-                  <span
-                    style={{
-                      display: 'inline-block',
-                      marginLeft: 8,
-                      fontSize: 12,
-                      color: '#818CF8',
-                      animation: 'pulse 1.5s ease-in-out infinite',
-                    }}
-                  >
-                    처리 중
+                  <span style={{ display: 'block', marginTop: 2, fontSize: 12, color: '#818CF8' }}>
+                    {stepNum === 2 && progressText ? progressText : '처리 중...'}
                   </span>
                 )}
               </div>

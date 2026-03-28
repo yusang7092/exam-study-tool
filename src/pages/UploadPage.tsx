@@ -41,6 +41,7 @@ export default function UploadPage() {
   const [step, setStep] = useState<UploadStep>(1)
   const [error, setError] = useState<string | null>(null)
   const [problemSetId, setProblemSetId] = useState<string | null>(null)
+  const [progressText, setProgressText] = useState('')
 
   const isImage = file ? file.type.startsWith('image/') : false
   const isPDF = file ? file.type === 'application/pdf' : false
@@ -116,22 +117,41 @@ export default function UploadPage() {
       const allDebugRaw: string[] = []
       let globalSeq = 1
       let problemCount = 0
+      const total = blobsForExtraction.length
 
-      for (let i = 0; i < blobsForExtraction.length; i++) {
+      for (let i = 0; i < total; i++) {
         const blob = blobsForExtraction[i]
-        let result: { problems: import('@/lib/extractProblems').ExtractedProblem[]; rawText: string }
-        try {
-          result = await extractProblemsFromBlob(geminiKey, blob)
-        } catch (e) {
-          allDebugRaw.push(`page ${i + 1} error: ${e instanceof Error ? e.message : String(e)}`)
-          continue
+        setProgressText(`페이지 ${i + 1} / ${total} 분석 중...`)
+
+        // Rate limit: Gemini free tier = 15 RPM → 4s between requests
+        if (i > 0) await new Promise(r => setTimeout(r, 4000))
+
+        let result: { problems: import('@/lib/extractProblems').ExtractedProblem[]; rawText: string } | undefined
+        let succeeded = false
+        for (let attempt = 0; attempt < 3; attempt++) {
+          try {
+            result = await extractProblemsFromBlob(geminiKey, blob)
+            succeeded = true
+            break
+          } catch (e) {
+            const msg = e instanceof Error ? e.message : String(e)
+            if (msg.includes('429') && attempt < 2) {
+              // Rate limited — wait 60s then retry
+              setProgressText(`페이지 ${i + 1} / ${total} — 잠시 대기 중 (요청 한도)...`)
+              await new Promise(r => setTimeout(r, 62000))
+            } else {
+              allDebugRaw.push(`page ${i + 1} error: ${msg.slice(0, 200)}`)
+              break
+            }
+          }
         }
+        if (!succeeded || !result!) continue
 
-        allDebugRaw.push(result.rawText.slice(0, 500))
+        allDebugRaw.push(result!.rawText.slice(0, 500))
 
-        if (result.problems.length === 0) continue
+        if (result!.problems.length === 0) continue
 
-        const rows = result.problems.map(p => ({
+        const rows = result!.problems.map(p => ({
           problem_set_id: ps.id,
           user_id: user.id,
           subject_id: subjectId!,
@@ -215,7 +235,7 @@ export default function UploadPage() {
           {step === 3 ? '문제 추출이 완료되었습니다.' : '잠시만 기다려 주세요.'}
         </p>
 
-        <UploadProgress step={step} error={error ?? undefined} />
+        <UploadProgress step={step} error={error ?? undefined} progressText={progressText} />
 
         {error && (
           <div style={{ marginTop: 16, display: 'flex', gap: 12 }}>
