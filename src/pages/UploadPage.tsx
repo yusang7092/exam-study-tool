@@ -42,6 +42,8 @@ export default function UploadPage() {
   const [error, setError] = useState<string | null>(null)
   const [problemSetId, setProblemSetId] = useState<string | null>(null)
   const [progressText, setProgressText] = useState('')
+  const [extractPercent, setExtractPercent] = useState<number | undefined>(undefined)
+  const [estimatedSecsLeft, setEstimatedSecsLeft] = useState<number | undefined>(undefined)
 
   const isImage = file ? file.type.startsWith('image/') : false
   const isPDF = file ? file.type === 'application/pdf' : false
@@ -124,10 +126,19 @@ export default function UploadPage() {
       let globalSeq = 1
       let problemCount = 0
       const total = blobsForExtraction.length
+      const extractStart = Date.now()
+      setExtractPercent(0)
+      setEstimatedSecsLeft(undefined)
 
       for (let i = 0; i < total; i++) {
         const blob = blobsForExtraction[i]
         setProgressText(`페이지 ${i + 1} / ${total} 분석 중...`)
+        setExtractPercent(Math.round((i / total) * 100))
+        if (i > 0) {
+          const elapsed = (Date.now() - extractStart) / 1000
+          const secsPerPage = elapsed / i
+          setEstimatedSecsLeft(Math.round(secsPerPage * (total - i)))
+        }
 
         // Rate limit: Gemini free tier = 15 RPM → 4s between requests
         if (i > 0) await new Promise(r => setTimeout(r, 4000))
@@ -183,6 +194,8 @@ export default function UploadPage() {
         localStorage.setItem('__ai_debug_raw', JSON.stringify(allDebugRaw))
       }
 
+      setExtractPercent(100)
+      setEstimatedSecsLeft(0)
       wakeLock?.release().catch(() => {})
 
       // Step 3: Done
@@ -212,6 +225,8 @@ export default function UploadPage() {
     } finally {
       setIsUploading(false)
       setProgressText('')
+      setExtractPercent(undefined)
+      setEstimatedSecsLeft(undefined)
     }
   }
 
@@ -244,7 +259,13 @@ export default function UploadPage() {
           {step === 3 ? '문제 추출이 완료되었습니다.' : '잠시만 기다려 주세요.'}
         </p>
 
-        <UploadProgress step={step} error={error ?? undefined} progressText={progressText} />
+        <UploadProgress
+          step={step}
+          error={error ?? undefined}
+          progressText={progressText}
+          extractPercent={extractPercent}
+          estimatedSecsLeft={estimatedSecsLeft}
+        />
 
         {error && (
           <div style={{ marginTop: 16, display: 'flex', gap: 12 }}>
